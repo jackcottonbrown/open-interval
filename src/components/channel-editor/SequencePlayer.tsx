@@ -5,6 +5,12 @@ import { COUNTDOWN_CONFIG, VOICE_CONFIG } from '@/lib/countdown-config';
 type SequencePlayerProps = {
   channels: Channel[];
   onTimeUpdate?: (currentTime: number) => void;
+  onIntervalSelect: (channelType: Channel['type'], intervalId: string, isShiftKey: boolean) => void;
+  selectedChannelType: Channel['type'];
+  selectedIntervalIds: Set<string>;
+  onChannelSelect: (channelType: Channel['type']) => void;
+  onIntervalsReorder: (channelType: Channel['type'], direction: 'left' | 'right', amount: number) => void;
+  onTimeAdjust: (direction: 'left' | 'right', isShiftKey: boolean) => void;
 };
 
 type AudioTrack = {
@@ -33,7 +39,16 @@ type ScheduledAudio = {
   isCountdown?: boolean;
 };
 
-export function SequencePlayer({ channels, onTimeUpdate }: SequencePlayerProps) {
+export function SequencePlayer({ 
+  channels, 
+  onTimeUpdate,
+  onIntervalSelect,
+  selectedChannelType,
+  selectedIntervalIds,
+  onChannelSelect,
+  onIntervalsReorder,
+  onTimeAdjust
+}: SequencePlayerProps) {
   // Find base channel and calculate total duration
   const baseChannel = channels.find((c): c is BaseChannel => c.type === 'base')!;
   const totalDuration = baseChannel.intervals.reduce((sum, int) => sum + int.duration, 0);
@@ -59,6 +74,26 @@ export function SequencePlayer({ channels, onTimeUpdate }: SequencePlayerProps) 
   const totalTimelineWidth = baseTimelineWidth * zoomLevel;
   const visibleDuration = totalDuration / zoomLevel;
   const pxPerMs = totalTimelineWidth / totalDuration;
+
+  // Track muted state for each channel
+  const [mutedChannels, setMutedChannels] = useState<Set<Channel['type']>>(new Set());
+
+  // Handle channel mute toggle
+  const handleMuteToggle = (channelType: Channel['type']) => {
+    const newMutedChannels = new Set(mutedChannels);
+    if (newMutedChannels.has(channelType)) {
+      newMutedChannels.delete(channelType);
+      // Restore previous volume
+      const channel = channels.find(c => c.type === channelType);
+      if (channel) {
+        updateChannelVolume(channelType, channel.volume);
+      }
+    } else {
+      newMutedChannels.add(channelType);
+      updateChannelVolume(channelType, 0);
+    }
+    setMutedChannels(newMutedChannels);
+  };
 
   // Update viewport when current time changes
   useEffect(() => {
@@ -646,16 +681,43 @@ export function SequencePlayer({ channels, onTimeUpdate }: SequencePlayerProps) 
 
         {/* Channels */}
         <div className="relative min-w-[1000px] overflow-hidden">
-          {channels.map((channel, channelIndex) => (
+          {channels.map((channel) => (
             <div
               key={channel.type}
               className="relative h-12 border-b border-gray-700 bg-gray-900"
             >
-              {/* Channel label */}
+              {/* Channel label with volume control */}
               <div className="absolute left-0 top-0 bottom-0 w-24 bg-gray-800 z-10 flex items-center px-2 border-r border-gray-700">
-                <span className="text-sm font-medium text-gray-300 truncate">
-                  {channel.name}
-                </span>
+                <div className="flex flex-col w-full">
+                  <span className="text-sm font-medium text-gray-300 truncate">
+                    {channel.name}
+                  </span>
+                  <div className="flex items-center gap-1 mt-0.5">
+                    <button
+                      onClick={() => handleMuteToggle(channel.type)}
+                      className="text-gray-400 hover:text-gray-300 transition-colors"
+                    >
+                      {mutedChannels.has(channel.type) ? (
+                        <svg className="w-3 h-3" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5.586 15.414l12.828-12.828M19.513 12c0-1.414-.434-2.725-1.174-3.814M15.51 8.084C15.827 8.671 16 9.32 16 10M4.487 12c0 2.21 1.398 4.566 3.536 5.657L12 20V4l-3.977 3.314" />
+                        </svg>
+                      ) : (
+                        <svg className="w-3 h-3" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.536 8.464a5 5 0 010 7.072M12 6v12l-4-4H4V10h4l4-4z" />
+                        </svg>
+                      )}
+                    </button>
+                    <input
+                      type="range"
+                      min="0"
+                      max="1"
+                      step="0.1"
+                      defaultValue={channel.volume}
+                      onChange={(e) => updateChannelVolume(channel.type, Number(e.target.value))}
+                      className="w-12 h-1 accent-blue-500"
+                    />
+                  </div>
+                </div>
               </div>
 
               {/* Intervals */}
@@ -676,17 +738,24 @@ export function SequencePlayer({ channels, onTimeUpdate }: SequencePlayerProps) 
                   
                   const isActive = currentTime >= startPosition && 
                                  currentTime < (startPosition + interval.duration);
+                  const isSelected = selectedIntervalIds.has(interval.id);
 
                   return (
                     <div
                       key={interval.id}
-                      className={`absolute top-1 bottom-1 rounded transition-opacity duration-200
-                        ${isActive ? 'opacity-100' : 'opacity-50'}`}
+                      className={`absolute top-1 bottom-1 rounded transition-all duration-200 cursor-pointer
+                        hover:brightness-110 hover:shadow-lg
+                        ${isActive ? 'opacity-100' : 'opacity-50'}
+                        ${isSelected ? 'ring-2 ring-blue-500 z-10' : ''}`}
                       style={{
                         left: `${visibleStart}%`,
                         width: `${visibleWidth}%`,
                         backgroundColor: interval.style.color + '40',
                         borderLeft: `2px solid ${interval.style.color}`
+                      }}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        onIntervalSelect(channel.type, interval.id, e.shiftKey);
                       }}
                     >
                       <div className="px-2 h-full flex items-center">
@@ -716,27 +785,6 @@ export function SequencePlayer({ channels, onTimeUpdate }: SequencePlayerProps) 
                           group-hover:scale-125 transition-transform" />
           </div>
         </div>
-      </div>
-
-      {/* Channel volume controls */}
-      <div className="mt-4 space-y-2">
-        {channels.map(channel => (
-          <div key={channel.type} className="flex items-center gap-4">
-            <span className="w-24 text-sm text-gray-300 truncate">{channel.name}</span>
-            <input
-              type="range"
-              min="0"
-              max="1"
-              step="0.1"
-              defaultValue={channel.volume}
-              onChange={(e) => {
-                const newVolume = Number(e.target.value);
-                updateChannelVolume(channel.type, newVolume);
-              }}
-              className="flex-1 accent-blue-500"
-            />
-          </div>
-        ))}
       </div>
     </div>
   );

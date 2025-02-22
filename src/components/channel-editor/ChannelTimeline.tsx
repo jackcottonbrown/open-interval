@@ -6,21 +6,19 @@ import { Channel, BaseChannel, OverlayChannel, BaseInterval, OverlayInterval } f
 type ChannelTimelineProps = {
   channels: Channel[];
   selectedChannelType: Channel['type'];
+  selectedIntervalIds: Set<string>;
   onChannelSelect: (channelType: Channel['type']) => void;
-  onIntervalSelect: (channelType: Channel['type'], intervalId: string) => void;
-  onIntervalsReorder: (channelType: Channel['type'], intervals: (BaseInterval | OverlayInterval)[]) => void;
-  onIntervalUpdate: (channelType: Channel['type'], intervalId: string, updates: Partial<OverlayInterval>) => void;
-  selectedIntervalId?: string;
+  onIntervalSelect: (channelType: Channel['type'], intervalId: string, isShiftKey: boolean) => void;
+  onIntervalsReorder: (channelType: Channel['type'], direction: 'left' | 'right', amount?: number) => void;
 };
 
 export function ChannelTimeline({
   channels,
   selectedChannelType,
+  selectedIntervalIds,
   onChannelSelect,
   onIntervalSelect,
   onIntervalsReorder,
-  onIntervalUpdate,
-  selectedIntervalId
 }: ChannelTimelineProps) {
   // Find base channel and calculate total duration
   const baseChannel = channels.find((c): c is BaseChannel => c.type === 'base')!;
@@ -36,59 +34,24 @@ export function ChannelTimeline({
   // Handle keyboard navigation
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
-      // Only handle if we have a selected interval
-      if (!selectedIntervalId) return;
+      // Only handle if we have selected intervals
+      if (selectedIntervalIds.size === 0) return;
 
       // Get the current channel
       const channel = channels.find(c => c.type === selectedChannelType);
       if (!channel) return;
 
-      // Find the current interval
-      const currentInterval = channel.intervals.find(i => i.id === selectedIntervalId);
-      if (!currentInterval) return;
-
-      const FINE_ADJUST = 100;   // 0.1 second
-      const COARSE_ADJUST = 1000; // 1 second
-
-      if (channel.type === 'base') {
-        // For base channel - reorder intervals
-        const currentIndex = channel.intervals.indexOf(currentInterval);
-        
-        if (e.key === 'ArrowLeft' && currentIndex > 0) {
-          const newIntervals = [...channel.intervals];
-          const temp = newIntervals[currentIndex];
-          newIntervals[currentIndex] = newIntervals[currentIndex - 1];
-          newIntervals[currentIndex - 1] = temp;
-          onIntervalsReorder(channel.type, newIntervals);
-          e.preventDefault();
-        } else if (e.key === 'ArrowRight' && currentIndex < channel.intervals.length - 1) {
-          const newIntervals = [...channel.intervals];
-          const temp = newIntervals[currentIndex];
-          newIntervals[currentIndex] = newIntervals[currentIndex + 1];
-          newIntervals[currentIndex + 1] = temp;
-          onIntervalsReorder(channel.type, newIntervals);
-          e.preventDefault();
-        }
-      } else {
-        // For overlay channels - adjust start time
-        const interval = currentInterval as OverlayInterval;
-        const adjustment = e.shiftKey ? COARSE_ADJUST : FINE_ADJUST;
-
-        if (e.key === 'ArrowLeft') {
-          const newStartTime = Math.max(0, interval.startTime - adjustment);
-          onIntervalUpdate(channel.type, interval.id, { startTime: newStartTime });
-          e.preventDefault();
-        } else if (e.key === 'ArrowRight') {
-          const newStartTime = Math.min(totalDuration - interval.duration, interval.startTime + adjustment);
-          onIntervalUpdate(channel.type, interval.id, { startTime: newStartTime });
-          e.preventDefault();
-        }
+      if (e.key === 'ArrowLeft' || e.key === 'ArrowRight') {
+        e.preventDefault();
+        const direction = e.key === 'ArrowLeft' ? 'left' : 'right';
+        const amount = e.shiftKey ? 10 : 1;
+        onIntervalsReorder(selectedChannelType, direction, amount);
       }
     };
 
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [channels, selectedChannelType, selectedIntervalId, totalDuration, onIntervalsReorder, onIntervalUpdate]);
+  }, [channels, selectedChannelType, selectedIntervalIds, onIntervalsReorder]);
 
   // Helper to format time (ms to MM:SS)
   const formatTime = (ms: number) => {
@@ -141,10 +104,11 @@ export function ChannelTimeline({
                 <span className="text-sm font-medium text-gray-300 truncate">
                   {channel.name}
                 </span>
-                {/* Add keyboard hints */}
-                {selectedChannelType === channel.type && (
+                {selectedChannelType === channel.type && selectedIntervalIds.size > 0 && (
                   <span className="ml-1 text-xs text-gray-500">
-                    {channel.type === 'base' ? '(← →)' : '(←0.1s→ +⇧1s)'}
+                    {channel.type === 'base' 
+                      ? '(← → +⇧10)' 
+                      : '(←0.1s→ +⇧1s)'}
                   </span>
                 )}
               </div>
@@ -161,12 +125,14 @@ export function ChannelTimeline({
                   
                   const width = interval.duration * pxPerMs;
 
+                  const isSelected = selectedIntervalIds.has(interval.id);
+
                   return (
                     <div
                       key={interval.id}
                       className={`absolute top-1 bottom-1 rounded cursor-pointer
                         transition-all duration-150
-                        ${selectedIntervalId === interval.id ? 'ring-2 ring-blue-500 z-10' : ''}
+                        ${isSelected ? 'ring-2 ring-blue-500 z-10' : ''}
                         ${hoveredInterval === interval.id ? 'brightness-110 shadow-lg' : ''}`}
                       style={{
                         left: `${startPosition * pxPerMs}px`,
@@ -176,7 +142,7 @@ export function ChannelTimeline({
                       }}
                       onClick={(e) => {
                         e.stopPropagation();
-                        onIntervalSelect(channel.type, interval.id);
+                        onIntervalSelect(channel.type, interval.id, e.shiftKey);
                       }}
                       onMouseEnter={() => setHoveredInterval(interval.id)}
                       onMouseLeave={() => setHoveredInterval(null)}

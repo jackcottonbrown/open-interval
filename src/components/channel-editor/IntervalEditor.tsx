@@ -83,9 +83,11 @@ export function IntervalEditor({
 
   // Get text that will be spoken
   const getSpokenText = () => {
+    // First check for a custom spoken label
     if (isOverlay && overlayInterval?.spokenLabel) {
       return overlayInterval.spokenLabel;
     }
+    // If no spoken label, use written label
     if (isOverlay && overlayInterval?.notes) {
       return `${interval.label}. ${overlayInterval.notes}`;
     }
@@ -181,16 +183,41 @@ export function IntervalEditor({
     <div className="space-y-4">
       {/* Basic Info */}
       <div className="grid grid-cols-2 gap-4">
-        <div>
-          <label className={labelClasses}>Label</label>
+        <div className="col-span-2">
+          <label className={labelClasses}>Written Label</label>
           <input
             type="text"
             value={interval.label}
             onChange={(e) => onUpdate({ label: e.target.value })}
             className={inputClasses}
+            placeholder="Label shown in the timeline"
           />
         </div>
-        <div>
+        <div className="col-span-2">
+          <label className={labelClasses}>
+            <span className="flex items-center gap-2">
+              Spoken Label
+              <span className="text-xs text-gray-500">(for voice generation)</span>
+            </span>
+          </label>
+          <input
+            type="text"
+            value={overlayInterval?.spokenLabel ?? ''}
+            onChange={(e) => {
+              if (isOverlay) {
+                onUpdate({ spokenLabel: e.target.value || undefined });
+              }
+            }}
+            className={inputClasses}
+            placeholder="Leave empty to use written label for voice generation"
+          />
+          {isOverlay && overlayInterval?.spokenLabel && (
+            <p className="mt-1 text-xs text-blue-400">
+              Using custom pronunciation
+            </p>
+          )}
+        </div>
+        <div className="col-span-2">
           <label className={labelClasses}>Duration (seconds)</label>
           <input
             type="number"
@@ -214,15 +241,6 @@ export function IntervalEditor({
               onChange={(e) => onUpdate({ startTime: Number(e.target.value) * 1000 })}
               min={0}
               max={totalDuration / 1000}
-              className={inputClasses}
-            />
-          </div>
-          <div>
-            <label className={labelClasses}>Spoken Label</label>
-            <input
-              type="text"
-              value={overlayInterval?.spokenLabel ?? ''}
-              onChange={(e) => onUpdate({ spokenLabel: e.target.value })}
               className={inputClasses}
             />
           </div>

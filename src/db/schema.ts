@@ -28,6 +28,7 @@ export type BaseInterval = {
   id: string;
   duration: number;     // milliseconds
   label: string;        // display text
+  spokenLabel?: string; // optional override for TTS
   style: IntervalStyle;
   metadata?: Record<string, any>;
 };
