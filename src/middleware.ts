@@ -12,7 +12,9 @@ const publicRoutePatterns = [
   '/about(.*)',          // Public info pages
   '/api/public/(.*)',    // Public API routes
   '/sequences/public(.*)', // Public sequences
-  '/profile(.*)'
+  '/profile(.*)',
+  '/audio/(.*)',          // Audio files
+  '/api/audio/(.*)'       // Audio API endpoints
 ]
 
 const isPublicRoute = createRouteMatcher(publicRoutePatterns)

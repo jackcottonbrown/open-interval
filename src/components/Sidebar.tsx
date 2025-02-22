@@ -11,7 +11,8 @@ import {
   PersonIcon,
   MixerHorizontalIcon,
   SunIcon,
-  MoonIcon
+  MoonIcon,
+  PlayIcon
 } from '@radix-ui/react-icons';
 import { useTheme } from './ThemeProvider';
 
@@ -68,6 +69,20 @@ export function Sidebar() {
             >
               <PlusIcon />
               <span>Build Sequence</span>
+            </Link>
+          </NavigationMenu.Item>
+
+          <NavigationMenu.Item>
+            <Link 
+              href="/test-sequence"
+              className={`flex items-center space-x-2 p-2 rounded-md transition-colors duration-200 ${
+                isActive('/test-sequence')
+                  ? 'bg-primary-50 dark:bg-primary-900 text-primary dark:text-primary-400'
+                  : 'hover:bg-gray-100 dark:hover:bg-dark-card text-gray-700 dark:text-dark-secondary'
+              }`}
+            >
+              <PlayIcon />
+              <span>Test Sequence</span>
             </Link>
           </NavigationMenu.Item>
 
