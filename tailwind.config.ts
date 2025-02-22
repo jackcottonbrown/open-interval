@@ -1,6 +1,7 @@
 import type { Config } from "tailwindcss";
+import { colors } from './src/styles/theme';
 
-export default {
+const config: Config = {
   content: [
     "./src/pages/**/*.{js,ts,jsx,tsx,mdx}",
     "./src/components/**/*.{js,ts,jsx,tsx,mdx}",
@@ -8,11 +9,23 @@ export default {
   ],
   theme: {
     extend: {
-      colors: {
-        background: "var(--background)",
-        foreground: "var(--foreground)",
+      colors,
+      backgroundColor: {
+        dark: colors.dark.background,
+        'dark-card': colors.dark.card,
+      },
+      textColor: {
+        'dark-primary': colors.dark.text.primary,
+        'dark-secondary': colors.dark.text.secondary,
+        'dark-tertiary': colors.dark.text.tertiary,
+      },
+      borderColor: {
+        dark: colors.dark.border,
       },
     },
   },
+  darkMode: 'class',
   plugins: [],
-} satisfies Config;
+};
+
+export default config;

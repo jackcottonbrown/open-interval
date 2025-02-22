@@ -8,6 +8,20 @@
       "when": 1740179812798,
       "tag": "0000_pretty_wendell_rand",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1740185429011,
+      "tag": "0001_fair_deathbird",
+      "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1740185611149,
+      "tag": "0002_curious_boomerang",
+      "breakpoints": true
     }
   ]
 }
