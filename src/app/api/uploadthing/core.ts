@@ -1,46 +1,101 @@
 import { createUploadthing, type FileRouter } from "uploadthing/next";
+import { UploadThingError } from "uploadthing/server";
+import { auth } from "@clerk/nextjs/server";
+import { z } from "zod";
+
+// Validate environment variables
+if (!process.env.UPLOADTHING_TOKEN) {
+  throw new UploadThingError(
+    'Missing UploadThing token. Please ensure UPLOADTHING_TOKEN is set in your environment variables.'
+  );
+}
 
 const f = createUploadthing();
 
-export type UploadMetadata = {
-  sequenceId: string;
-  sequenceName: string;
-  intervalId: string;
-  channelType: string;
-};
+// Define input validation schema
+const uploadInputSchema = z.object({
+  sequenceId: z.string(),
+  sequenceName: z.string(),
+  intervalId: z.string(),
+  channelType: z.string()
+});
+
+export type UploadMetadata = z.infer<typeof uploadInputSchema>;
 
 // FileRouter for your app, can contain multiple FileRoutes
 export const ourFileRouter = {
-  // Define as many FileRoutes as you like, each with a unique routeSlug
-  audioUploader: f({ audio: { maxFileSize: "32MB", maxFileCount: 1 } })
+  audioUploader: f({
+    audio: {
+      maxFileSize: "32MB",
+      maxFileCount: 1,
+      contentDisposition: 'inline'
+    }
+  })
+    .input(uploadInputSchema)
     .middleware(async ({ req, input }) => {
-      const metadata = input as UploadMetadata;
-      
-      // Validate metadata
-      if (!metadata.sequenceId || !metadata.sequenceName || !metadata.intervalId) {
-        throw new Error('Missing required metadata');
-      }
+      try {
+        // Check authentication
+        const { userId } = await auth();
+        if (!userId) {
+          throw new UploadThingError("You must be logged in to upload files");
+        }
 
-      return metadata;
+        // Log incoming request for debugging
+        console.log('Upload middleware input:', { userId, input });
+
+        // Return validated metadata and userId
+        return {
+          userId,
+          ...input
+        };
+      } catch (error) {
+        console.error('Error in upload middleware:', error);
+        throw error;
+      }
     })
     .onUploadComplete(async ({ metadata, file }) => {
-      // Create a consistent file name for overwriting
-      const folderPath = `sequences/${metadata.sequenceId}/${metadata.channelType}`;
-      const fileName = `${metadata.intervalId}.mp3`; // Always use .mp3 extension for consistency
+      console.log('Starting onUploadComplete with:', { metadata, file });
       
-      // Log the upload details
-      console.log("Upload complete (overwrite):", {
-        sequence: metadata.sequenceName,
-        channel: metadata.channelType,
-        interval: metadata.intervalId,
-        url: file.url,
-        path: `${folderPath}/${fileName}`,
-      });
-      
-      return { 
-        url: file.url,
-        path: `${folderPath}/${fileName}`,
-      };
+      try {
+        if (!metadata || !file) {
+          console.error('Missing metadata or file in onUploadComplete:', { metadata, file });
+          throw new UploadThingError('Missing metadata or file data');
+        }
+
+        // Create a consistent file name for overwriting
+        const folderPath = `sequences/${metadata.sequenceId}/${metadata.channelType}`;
+        const fileName = `${metadata.intervalId}.mp3`; // Always use .mp3 extension for consistency
+        const fullPath = `${folderPath}/${fileName}`;
+        
+        // Log the upload details
+        console.log("Upload complete:", {
+          userId: metadata.userId,
+          sequence: metadata.sequenceName,
+          channel: metadata.channelType,
+          interval: metadata.intervalId,
+          url: file.url,
+          path: fullPath,
+        });
+        
+        // Return both the URL and the constructed path
+        return { 
+          url: file.url,
+          path: fullPath
+        };
+      } catch (error) {
+        // Log the full error details
+        console.error('Error in onUploadComplete:', {
+          error,
+          metadata,
+          file,
+          stack: error instanceof Error ? error.stack : undefined
+        });
+        
+        // Rethrow with more context
+        throw new UploadThingError(
+          `Failed to process upload: ${error instanceof Error ? error.message : 'Unknown error'}`
+        );
+      }
     }),
 } satisfies FileRouter;
 

@@ -14,7 +14,8 @@ const publicRoutePatterns = [
   '/sequences/public(.*)', // Public sequences
   '/profile(.*)',
   '/audio/(.*)',          // Audio files
-  '/api/audio/(.*)'       // Audio API endpoints
+  '/api/audio',           // Audio API endpoint (exact match)
+  '/api/audio/(.*)'       // Audio API sub-routes
 ]
 
 const isPublicRoute = createRouteMatcher(publicRoutePatterns)

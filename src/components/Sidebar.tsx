@@ -9,7 +9,6 @@ import {
   TimerIcon, 
   PlusIcon, 
   PersonIcon,
-  MixerHorizontalIcon,
   SunIcon,
   MoonIcon,
   PlayIcon

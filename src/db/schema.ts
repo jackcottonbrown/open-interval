@@ -1,4 +1,4 @@
-import { pgTable, text, timestamp, serial, integer, boolean, jsonb, PgTable } from "drizzle-orm/pg-core";
+import { pgTable, text, timestamp, serial, integer, boolean, jsonb, PgTable, index } from "drizzle-orm/pg-core";
 
 export const users = pgTable("users", {
   id: text("id").primaryKey(), // This will be the Clerk user ID
@@ -8,43 +8,46 @@ export const users = pgTable("users", {
   username: text("username"),  // Remove .unique() to allow nulls
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
+}, (table) => {
+  return {
+    emailIdx: index("email_idx").on(table.email),
+    usernameIdx: index("username_idx").on(table.username),
+  };
 });
 
 export type ChannelType = 'base' | 'tutorial' | 'encouragement' | 'custom';
 
-export type IntervalStyle = {
+// Core interval properties that all intervals share
+export type IntervalCore = {
+  id: string;
+  label: string;        // display text
+  spokenLabel?: string; // optional override for TTS
   color: string;        // CSS color value
   audioFile?: string;   // optional path to audio file
   volume?: number;      // 0-1 scale, defaults to 1
+  notes?: string;       // user-written notes/instructions/reminders
+  imageUrl?: string;    // optional image URL
+  imageAlt?: string;    // optional image alt text
+  imageCaption?: string; // optional image caption
 };
 
-export type IntervalMedia = {
-  imageUrl?: string;    // URL to supporting image
-  imageAlt?: string;    // Alt text for accessibility
-  caption?: string;     // Optional caption for the image
-};
-
-export type BaseInterval = {
-  id: string;
+// Base intervals are used for the main sequence and have countdown functionality
+export type BaseInterval = IntervalCore & {
+  type: 'base';
   duration: number;     // milliseconds
-  label: string;        // display text
-  spokenLabel?: string; // optional override for TTS
-  style: IntervalStyle;
-  metadata?: Record<string, any>;
 };
 
-export type OverlayInterval = {
-  id: string;
+// Overlay intervals trigger at specific times during the sequence
+export type OverlayInterval = IntervalCore & {
+  type: 'overlay';
   startTime: number;    // milliseconds from sequence start
   duration: number;     // milliseconds
-  label: string;        // display text
-  spokenLabel?: string; // optional override for TTS
-  notes?: string;       // user-written notes/instructions/reminders
-  media?: IntervalMedia;
-  style: IntervalStyle;
-  metadata?: Record<string, any>;
 };
 
+// Union type for any interval
+export type Interval = BaseInterval | OverlayInterval;
+
+// Channel types
 export type BaseChannel = {
   type: 'base';
   name: string;
@@ -74,6 +77,13 @@ export const sequences = pgTable("sequences", {
   channels: jsonb("channels").$type<Channel[]>().default([]).notNull(),
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
+}, (table) => {
+  return {
+    userIdIdx: index("user_id_idx").on(table.userId),
+    nameIdx: index("name_idx").on(table.name),
+    tagsIdx: index("tags_idx").on(table.tags),
+    isPublicIdx: index("is_public_idx").on(table.isPublic),
+  };
 });
 
 // Remove unused tables

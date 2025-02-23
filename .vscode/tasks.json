@@ -7,6 +7,18 @@
 			"problemMatcher": [],
 			"label": "npm: dev",
 			"detail": "next dev --turbopack"
+		},
+		{
+			"label": "Run Dev Server",
+			"type": "shell",
+			"command": "npm run dev",
+			"options": {
+			  "cwd": "${workspaceFolder}"
+			},
+			"presentation": {
+			"reveal": "always",
+			  "panel": "new"
+			}
 		}
 	]
 }

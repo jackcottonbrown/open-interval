@@ -1,0 +1,226 @@
+{
+  "sequenceId": "5",
+  "totalFiles": 22,
+  "totalSize": 8915476,
+  "channels": [
+    {
+      "channelType": "overlay",
+      "fileCount": 6,
+      "totalSize": 4011569,
+      "files": [
+        {
+          "name": "5_overlay_intro.mp3",
+          "key": "7ebC5M2tZCOJyFIjNiZeOcfKJrZukiaUBFToRb217LQAE5CI",
+          "url": "https://hpcsoxi085.ufs.sh/f/7ebC5M2tZCOJyFIjNiZeOcfKJrZukiaUBFToRb217LQAE5CI",
+          "size": 465606,
+          "uploadedAt": 1740274797000,
+          "status": "Uploaded",
+          "customId": null
+        },
+        {
+          "name": "5_overlay_breathing-1.mp3",
+          "key": "7ebC5M2tZCOJfda4h9TTE4hLcmOdJtqxoGBZ0g5wMUKNlYi8",
+          "url": "https://hpcsoxi085.ufs.sh/f/7ebC5M2tZCOJfda4h9TTE4hLcmOdJtqxoGBZ0g5wMUKNlYi8",
+          "size": 687960,
+          "uploadedAt": 1740274781000,
+          "status": "Uploaded",
+          "customId": null
+        },
+        {
+          "name": "5_overlay_body-scan-1.mp3",
+          "key": "7ebC5M2tZCOJlZrMeA9YxjpOi7tah2BNfXqybLmSGWgnreID",
+          "url": "https://hpcsoxi085.ufs.sh/f/7ebC5M2tZCOJlZrMeA9YxjpOi7tah2BNfXqybLmSGWgnreID",
+          "size": 739787,
+          "uploadedAt": 1740274760000,
+          "status": "Uploaded",
+          "customId": null
+        },
+        {
+          "name": "5_overlay_body-scan-2.mp3",
+          "key": "7ebC5M2tZCOJwNYAdrMPlmTi8ZcCk9vztxQebDgX6OKJsnu1",
+          "url": "https://hpcsoxi085.ufs.sh/f/7ebC5M2tZCOJwNYAdrMPlmTi8ZcCk9vztxQebDgX6OKJsnu1",
+          "size": 695484,
+          "uploadedAt": 1740274723000,
+          "status": "Failed",
+          "customId": null
+        },
+        {
+          "name": "5_overlay_body-scan-3.mp3",
+          "key": "7ebC5M2tZCOJccBV80IMIPjoy6mawz4A0SGtXqpgfZirVhln",
+          "url": "https://hpcsoxi085.ufs.sh/f/7ebC5M2tZCOJccBV80IMIPjoy6mawz4A0SGtXqpgfZirVhln",
+          "size": 742295,
+          "uploadedAt": 1740274695000,
+          "status": "Uploaded",
+          "customId": null
+        },
+        {
+          "name": "5_overlay_mindfulness.mp3",
+          "key": "7ebC5M2tZCOJUHVNPK3goJuG31TCKFANzE6ZP5rXm749dBhV",
+          "url": "https://hpcsoxi085.ufs.sh/f/7ebC5M2tZCOJUHVNPK3goJuG31TCKFANzE6ZP5rXm749dBhV",
+          "size": 680437,
+          "uploadedAt": 1740274676000,
+          "status": "Uploaded",
+          "customId": null
+        }
+      ]
+    },
+    {
+      "channelType": "tutorial",
+      "fileCount": 14,
+      "totalSize": 4857097,
+      "files": [
+        {
+          "name": "5_tutorial_closing.mp3",
+          "key": "7ebC5M2tZCOJZ0WxRZlbzfo1LRNh02V9QmnHWdxUFID4kvJC",
+          "url": "https://hpcsoxi085.ufs.sh/f/7ebC5M2tZCOJZ0WxRZlbzfo1LRNh02V9QmnHWdxUFID4kvJC",
+          "size": 702171,
+          "uploadedAt": 1740274357000,
+          "status": "Uploaded",
+          "customId": null
+        },
+        {
+          "name": "5_tutorial_mindfulness.mp3",
+          "key": "7ebC5M2tZCOJ3GYQFzcw9TQXVKa23FoZYycRn6vLrsh7eB8k",
+          "url": "https://hpcsoxi085.ufs.sh/f/7ebC5M2tZCOJ3GYQFzcw9TQXVKa23FoZYycRn6vLrsh7eB8k",
+          "size": 689214,
+          "uploadedAt": 1740274345000,
+          "status": "Uploaded",
+          "customId": null
+        },
+        {
+          "name": "5_tutorial_body-scan-3.mp3",
+          "key": "7ebC5M2tZCOJkPFUEBZqpoKS1lgR4W3ejzEa5uYbdNXc8BA0",
+          "url": "https://hpcsoxi085.ufs.sh/f/7ebC5M2tZCOJkPFUEBZqpoKS1lgR4W3ejzEa5uYbdNXc8BA0",
+          "size": 722651,
+          "uploadedAt": 1740274331000,
+          "status": "Uploaded",
+          "customId": null
+        },
+        {
+          "name": "5_tutorial_body-scan-2.mp3",
+          "key": "7ebC5M2tZCOJRFcB0SaNbeBxjXUWZKo7ACFmuJTf6yHwLSv3",
+          "url": "https://hpcsoxi085.ufs.sh/f/7ebC5M2tZCOJRFcB0SaNbeBxjXUWZKo7ACFmuJTf6yHwLSv3",
+          "size": 683363,
+          "uploadedAt": 1740274320000,
+          "status": "Uploaded",
+          "customId": null
+        },
+        {
+          "name": "5_tutorial_body-scan-1.mp3",
+          "key": "7ebC5M2tZCOJWLKOdJ5P6SAIUwDKW4xNHn31JzTLFuXsZab0",
+          "url": "https://hpcsoxi085.ufs.sh/f/7ebC5M2tZCOJWLKOdJ5P6SAIUwDKW4xNHn31JzTLFuXsZab0",
+          "size": 739787,
+          "uploadedAt": 1740274309000,
+          "status": "Uploaded",
+          "customId": null
+        },
+        {
+          "name": "5_tutorial_breathing-1.mp3",
+          "key": "7ebC5M2tZCOJiURY5IL1SlNvJzE5stKuLMQ7xBrIejoh0Tad",
+          "url": "https://hpcsoxi085.ufs.sh/f/7ebC5M2tZCOJiURY5IL1SlNvJzE5stKuLMQ7xBrIejoh0Tad",
+          "size": 660375,
+          "uploadedAt": 1740274297000,
+          "status": "Uploaded",
+          "customId": null
+        },
+        {
+          "name": "5_tutorial_intro.mp3",
+          "key": "7ebC5M2tZCOJhEENE6p1AWudzT3ZfBSG7Qp8J1Ml5kI0DVwi",
+          "url": "https://hpcsoxi085.ufs.sh/f/7ebC5M2tZCOJhEENE6p1AWudzT3ZfBSG7Qp8J1Ml5kI0DVwi",
+          "size": 490266,
+          "uploadedAt": 1740274286000,
+          "status": "Uploaded",
+          "customId": null
+        },
+        {
+          "name": "5_tutorial_closing.mp3",
+          "key": "7ebC5M2tZCOJVWB6aUvfN5tpyTh3bvjqIYraoMZdg6Wml4Ki",
+          "url": "https://hpcsoxi085.ufs.sh/f/7ebC5M2tZCOJVWB6aUvfN5tpyTh3bvjqIYraoMZdg6Wml4Ki",
+          "size": 22987,
+          "uploadedAt": 1740274018000,
+          "status": "Uploaded",
+          "customId": null
+        },
+        {
+          "name": "5_tutorial_mindfulness.mp3",
+          "key": "7ebC5M2tZCOJMhUXLo7854093aSTyFhrjpk2ei7X6xEbYPIt",
+          "url": "https://hpcsoxi085.ufs.sh/f/7ebC5M2tZCOJMhUXLo7854093aSTyFhrjpk2ei7X6xEbYPIt",
+          "size": 29675,
+          "uploadedAt": 1740274017000,
+          "status": "Uploaded",
+          "customId": null
+        },
+        {
+          "name": "5_tutorial_body-scan-3.mp3",
+          "key": "7ebC5M2tZCOJy3EPinZeOcfKJrZukiaUBFToRb217LQAE5CI",
+          "url": "https://hpcsoxi085.ufs.sh/f/7ebC5M2tZCOJy3EPinZeOcfKJrZukiaUBFToRb217LQAE5CI",
+          "size": 19226,
+          "uploadedAt": 1740274016000,
+          "status": "Uploaded",
+          "customId": null
+        },
+        {
+          "name": "5_tutorial_body-scan-2.mp3",
+          "key": "7ebC5M2tZCOJokVPkLpqIFvPtOlDoNVHa0Q59fjp41rMX3AC",
+          "url": "https://hpcsoxi085.ufs.sh/f/7ebC5M2tZCOJokVPkLpqIFvPtOlDoNVHa0Q59fjp41rMX3AC",
+          "size": 22151,
+          "uploadedAt": 1740274015000,
+          "status": "Uploaded",
+          "customId": null
+        },
+        {
+          "name": "5_tutorial_body-scan-1.mp3",
+          "key": "7ebC5M2tZCOJ7Cb7ej2tZCOJzlPB7kAVD8xUIs3NSHqpb2R0",
+          "url": "https://hpcsoxi085.ufs.sh/f/7ebC5M2tZCOJ7Cb7ej2tZCOJzlPB7kAVD8xUIs3NSHqpb2R0",
+          "size": 21315,
+          "uploadedAt": 1740274014000,
+          "status": "Uploaded",
+          "customId": null
+        },
+        {
+          "name": "5_tutorial_breathing-1.mp3",
+          "key": "7ebC5M2tZCOJMrVqaZ7854093aSTyFhrjpk2ei7X6xEbYPIt",
+          "url": "https://hpcsoxi085.ufs.sh/f/7ebC5M2tZCOJMrVqaZ7854093aSTyFhrjpk2ei7X6xEbYPIt",
+          "size": 27167,
+          "uploadedAt": 1740274013000,
+          "status": "Uploaded",
+          "customId": null
+        },
+        {
+          "name": "5_tutorial_intro.mp3",
+          "key": "7ebC5M2tZCOJADgCjejNtEWa2MTiAy0wOXkNZ4xcP3sqSYoR",
+          "url": "https://hpcsoxi085.ufs.sh/f/7ebC5M2tZCOJADgCjejNtEWa2MTiAy0wOXkNZ4xcP3sqSYoR",
+          "size": 26749,
+          "uploadedAt": 1740274011000,
+          "status": "Uploaded",
+          "customId": null
+        }
+      ]
+    },
+    {
+      "channelType": "base",
+      "fileCount": 2,
+      "totalSize": 46810,
+      "files": [
+        {
+          "name": "5_base_meditation-base.mp3",
+          "key": "7ebC5M2tZCOJIZ9NLvjL7zdMQaVK0mi2xnRwUOWbSqs5Cye9",
+          "url": "https://hpcsoxi085.ufs.sh/f/7ebC5M2tZCOJIZ9NLvjL7zdMQaVK0mi2xnRwUOWbSqs5Cye9",
+          "size": 22987,
+          "uploadedAt": 1740274279000,
+          "status": "Uploaded",
+          "customId": null
+        },
+        {
+          "name": "5_base_meditation-base.mp3",
+          "key": "7ebC5M2tZCOJ9rByNgkxfpJO3Bo6xcLF5yuzhrmg84kUAwsP",
+          "url": "https://hpcsoxi085.ufs.sh/f/7ebC5M2tZCOJ9rByNgkxfpJO3Bo6xcLF5yuzhrmg84kUAwsP",
+          "size": 23823,
+          "uploadedAt": 1740274010000,
+          "status": "Uploaded",
+          "customId": null
+        }
+      ]
+    }
+  ]
+}

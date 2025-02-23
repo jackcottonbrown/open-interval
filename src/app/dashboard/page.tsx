@@ -1,7 +1,6 @@
 import { auth } from "@clerk/nextjs/server";
 import Link from "next/link";
 import { createUser, getUser } from "@/lib/auth";
-import { redirect } from "next/navigation";
 
 export default async function DashboardPage() {
   console.log("🔄 Dashboard: Starting page load");

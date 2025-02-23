@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState, useCallback } from 'react';
-import { Channel, BaseChannel, OverlayInterval } from '@/db/schema';
-import { COUNTDOWN_CONFIG, VOICE_CONFIG } from '@/lib/countdown-config';
+import { Channel, BaseChannel, OverlayChannel, BaseInterval, OverlayInterval } from '@/db/schema';
+import { COUNTDOWN_CONFIG, COUNTDOWN_VOICES } from '@/lib/countdown-config';
 
 type SequencePlayerProps = {
   channels: Channel[];
@@ -11,6 +11,7 @@ type SequencePlayerProps = {
   onChannelSelect: (channelType: Channel['type']) => void;
   onIntervalsReorder: (channelType: Channel['type'], direction: 'left' | 'right', amount: number) => void;
   onTimeAdjust: (direction: 'left' | 'right', isShiftKey: boolean) => void;
+  countdownVoice?: string;
 };
 
 type AudioTrack = {
@@ -47,7 +48,8 @@ export function SequencePlayer({
   selectedIntervalIds,
   onChannelSelect,
   onIntervalsReorder,
-  onTimeAdjust
+  onTimeAdjust,
+  countdownVoice = COUNTDOWN_CONFIG.DEFAULT_VOICE
 }: SequencePlayerProps) {
   // Find base channel and calculate total duration
   const baseChannel = channels.find((c): c is BaseChannel => c.type === 'base')!;
@@ -67,7 +69,28 @@ export function SequencePlayer({
   const audioTracksRef = useRef<AudioTrack[]>([]);
   const scheduledAudioRef = useRef<ScheduledAudio[]>([]);
   const timelineRef = useRef<HTMLDivElement>(null);
-  
+  const lastChannelsRef = useRef<Channel[]>(channels);
+
+  // Memoize channels to prevent unnecessary reinitializations
+  const channelsChanged = useCallback((prevChannels: Channel[], nextChannels: Channel[]): boolean => {
+    if (prevChannels.length !== nextChannels.length) return true;
+    
+    for (let i = 0; i < prevChannels.length; i++) {
+      const prev = prevChannels[i];
+      const next = nextChannels[i];
+      
+      if (prev.type !== next.type || prev.intervals.length !== next.intervals.length) return true;
+      
+      for (let j = 0; j < prev.intervals.length; j++) {
+        const prevInt = prev.intervals[j];
+        const nextInt = next.intervals[j];
+        if (prevInt.id !== nextInt.id || prevInt.audioFile !== nextInt.audioFile) return true;
+      }
+    }
+    
+    return false;
+  }, []);
+
   // Calculate viewport and zoom settings
   const baseTimelineWidth = 1000; // px (base width before zoom)
   const viewportWidth = baseTimelineWidth;
@@ -151,8 +174,29 @@ export function SequencePlayer({
 
   // Initialize audio tracks
   useEffect(() => {
+    // Skip if channels haven't changed
+    if (!channelsChanged(lastChannelsRef.current, channels)) {
+      return;
+    }
+    lastChannelsRef.current = channels;
+
     let totalTracks = 0;
     let loadedTracks = 0;
+
+    // Count total tracks first
+    channels.forEach(channel => {
+      channel.intervals.forEach(interval => {
+        if (interval.audioFile) {
+          totalTracks++;
+        }
+      });
+    });
+
+    // Skip initialization if no audio files
+    if (totalTracks === 0) {
+      setLoadingStatus({ loaded: 0, total: 0 });
+      return;
+    }
 
     console.log('Initializing audio tracks:', channels);
 
@@ -166,20 +210,27 @@ export function SequencePlayer({
     // Load all audio files
     channels.forEach(channel => {
       channel.intervals.forEach(interval => {
-        if (!interval.style.audioFile) {
+        // Skip if no audio file
+        if (!interval.audioFile) {
           return;
         }
 
-        totalTracks++;
+        // Create audio element
         const audio = new Audio();
-        
-        // Calculate start time based on channel type
-        const startTime = channel.type === 'base'
-          ? channel.intervals
-              .slice(0, channel.intervals.indexOf(interval))
-              .reduce((sum, int) => sum + int.duration, 0)
-          : (interval as OverlayInterval).startTime;
 
+        // Calculate start time based on channel type
+        let startTime: number;
+        if (channel.type === 'base') {
+          const baseChannel = channel as BaseChannel;
+          const baseInterval = interval as BaseInterval;
+          startTime = baseChannel.intervals
+            .slice(0, baseChannel.intervals.indexOf(baseInterval))
+            .reduce((sum, int) => sum + int.duration, 0);
+        } else {
+          startTime = (interval as OverlayInterval).startTime;
+        }
+
+        // Create audio track
         const track: AudioTrack = {
           audio,
           channelType: channel.type,
@@ -187,14 +238,14 @@ export function SequencePlayer({
             id: interval.id,
             startTime,
             duration: interval.duration,
-            volume: interval.style.volume
+            volume: interval.volume
           },
           channelVolume: channel.volume ?? 1,
           isLoaded: false
         };
 
         // Set up audio loading
-        audio.addEventListener('canplaythrough', () => {
+        const handleLoad = () => {
           track.isLoaded = true;
           loadedTracks++;
           console.log('Audio loaded:', {
@@ -204,9 +255,9 @@ export function SequencePlayer({
             duration: audio.duration
           });
           setLoadingStatus({ loaded: loadedTracks, total: totalTracks });
-        });
+        };
 
-        audio.addEventListener('error', (e) => {
+        const handleError = (e: ErrorEvent) => {
           const error = e.currentTarget as HTMLAudioElement;
           track.error = `Failed to load audio: ${error.error?.message || 'Unknown error'}`;
           console.error('Audio loading error:', {
@@ -217,25 +268,19 @@ export function SequencePlayer({
           });
           loadedTracks++;
           setLoadingStatus({ loaded: loadedTracks, total: totalTracks });
-        });
+        };
 
-        // Ensure the audio file URL is absolute and starts with /audio/
-        let audioUrl = interval.style.audioFile;
-        if (!audioUrl.startsWith('/')) {
-          audioUrl = `/${audioUrl}`;
-        }
-        if (!audioUrl.startsWith('/audio/')) {
-          audioUrl = `/audio${audioUrl}`;
-        }
+        audio.addEventListener('canplaythrough', handleLoad, { once: true });
+        audio.addEventListener('error', handleError, { once: true });
 
         // Set source and volume
-        audio.src = audioUrl;
-        audio.volume = (interval.style.volume ?? 1) * (channel.volume ?? 1);
+        audio.src = interval.audioFile;
+        audio.volume = (interval.volume ?? 1) * (channel.volume ?? 1);
         
         console.log('Setting up audio track:', {
           id: interval.id,
           channel: channel.type,
-          url: audioUrl,
+          url: interval.audioFile,
           startTime,
           duration: interval.duration
         });
@@ -243,8 +288,6 @@ export function SequencePlayer({
         audioTracksRef.current.push(track);
       });
     });
-
-    setLoadingStatus({ loaded: 0, total: totalTracks });
 
     // Cleanup
     return () => {
@@ -254,34 +297,28 @@ export function SequencePlayer({
       });
       audioTracksRef.current = [];
     };
-  }, [channels]);
+  }, [channels, channelsChanged]);
 
   // Initialize countdown audio
-  const countdownAudioRef = useRef<{ [key: string]: HTMLAudioElement }>({});
+  const countdownAudioRef = useRef<HTMLAudioElement | null>(null);
 
-  // Load countdown audio files
+  // Load countdown audio file
   useEffect(() => {
-    const countdownPaths = {
-      one: '/audio/countdown/rachel/one.mp3',
-      two: '/audio/countdown/rachel/two.mp3',
-      three: '/audio/countdown/rachel/three.mp3'
-    };
-
-    // Create audio elements for countdown
-    Object.entries(countdownPaths).forEach(([key, path]) => {
-      const audio = new Audio(path);
-      audio.volume = COUNTDOWN_CONFIG.VOLUME;
-      countdownAudioRef.current[key] = audio;
-    });
+    const voice = COUNTDOWN_VOICES.find(v => v.name === countdownVoice) ?? 
+                 COUNTDOWN_VOICES.find(v => v.name === COUNTDOWN_CONFIG.DEFAULT_VOICE)!;
+                 
+    const audio = new Audio(`${voice.directory}/countdown.mp3`);
+    audio.volume = COUNTDOWN_CONFIG.VOLUME;
+    countdownAudioRef.current = audio;
 
     // Cleanup
     return () => {
-      Object.values(countdownAudioRef.current).forEach(audio => {
-        audio.pause();
-        audio.currentTime = 0;
-      });
+      if (countdownAudioRef.current) {
+        countdownAudioRef.current.pause();
+        countdownAudioRef.current.currentTime = 0;
+      }
     };
-  }, []);
+  }, [countdownVoice]);
 
   // Schedule audio playback (updated to include countdown)
   const scheduleAudioPlayback = (startFromTime: number) => {
@@ -306,40 +343,35 @@ export function SequencePlayer({
 
       if (index > 0 && intervalStart > startFromTime) {
         // Schedule countdown audio
-        for (let i = COUNTDOWN_CONFIG.START_TIME / 1000; i > 0; i--) {
-          const countdownTime = intervalStart - (i * COUNTDOWN_CONFIG.INTERVAL);
-          
-          if (countdownTime > startFromTime) {
-            const delay = countdownTime - startFromTime;
-            const countdownKey = i === 3 ? 'three' : i === 2 ? 'two' : 'one';
-            const audio = countdownAudioRef.current[countdownKey];
+        const countdownTime = intervalStart - COUNTDOWN_CONFIG.START_TIME;
+        
+        if (countdownTime > startFromTime && countdownAudioRef.current) {
+          const delay = countdownTime - startFromTime;
+          const audio = countdownAudioRef.current;
 
-            if (audio) {
-              const playTimeoutId = window.setTimeout(() => {
-                console.log(`Playing countdown ${i} before ${interval.label}`);
-                audio.currentTime = 0;
-                audio.play().catch(err => 
-                  console.error(`Failed to play countdown ${i}:`, err)
-                );
-              }, delay);
+          const playTimeoutId = window.setTimeout(() => {
+            console.log(`Playing countdown before ${interval.label}`);
+            audio.currentTime = 0;
+            audio.play().catch(err => 
+              console.error('Failed to play countdown:', err)
+            );
+          }, delay);
 
-              scheduledAudioRef.current.push({
-                id: `countdown-${i}-${interval.id}`,
-                channelType: 'base',
-                audio,
-                startTime: countdownTime,
-                duration: COUNTDOWN_CONFIG.INTERVAL,
-                volume: COUNTDOWN_CONFIG.VOLUME,
-                playTimeoutId,
-                isCountdown: true
-              });
+          scheduledAudioRef.current.push({
+            id: `countdown-${interval.id}`,
+            channelType: 'base',
+            audio,
+            startTime: countdownTime,
+            duration: COUNTDOWN_CONFIG.DURATION,
+            volume: COUNTDOWN_CONFIG.VOLUME,
+            playTimeoutId,
+            isCountdown: true
+          });
 
-              if (!scheduledTimes.has(countdownTime)) {
-                scheduledTimes.set(countdownTime, []);
-              }
-              scheduledTimes.get(countdownTime)!.push(`Countdown ${i}`);
-            }
+          if (!scheduledTimes.has(countdownTime)) {
+            scheduledTimes.set(countdownTime, []);
           }
+          scheduledTimes.get(countdownTime)!.push('Countdown');
         }
       }
     });
@@ -724,8 +756,8 @@ export function SequencePlayer({
               <div className="ml-24 relative h-full">
                 {channel.intervals.map(interval => {
                   const startPosition = channel.type === 'base'
-                    ? channel.intervals
-                        .slice(0, channel.intervals.indexOf(interval))
+                    ? (channel as BaseChannel).intervals
+                        .slice(0, (channel as BaseChannel).intervals.indexOf(interval as BaseInterval))
                         .reduce((sum, int) => sum + int.duration, 0)
                     : (interval as OverlayInterval).startTime;
                   
@@ -750,8 +782,8 @@ export function SequencePlayer({
                       style={{
                         left: `${visibleStart}%`,
                         width: `${visibleWidth}%`,
-                        backgroundColor: interval.style.color + '40',
-                        borderLeft: `2px solid ${interval.style.color}`
+                        backgroundColor: interval.color + '40',
+                        borderLeft: `2px solid ${interval.color}`
                       }}
                       onClick={(e) => {
                         e.stopPropagation();

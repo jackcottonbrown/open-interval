@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Channel, BaseChannel, OverlayChannel, BaseInterval, OverlayInterval } from '@/db/schema';
+import { Channel, BaseChannel, OverlayInterval } from '@/db/schema';
 
 type ChannelTimelineProps = {
   channels: Channel[];
@@ -137,8 +137,8 @@ export function ChannelTimeline({
                       style={{
                         left: `${startPosition * pxPerMs}px`,
                         width: `${width}px`,
-                        backgroundColor: interval.style.color + '40',
-                        borderLeft: `2px solid ${interval.style.color}`
+                        backgroundColor: interval.color + '40',
+                        borderLeft: `2px solid ${interval.color}`
                       }}
                       onClick={(e) => {
                         e.stopPropagation();

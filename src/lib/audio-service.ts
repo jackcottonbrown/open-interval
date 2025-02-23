@@ -1,10 +1,10 @@
-import { ElevenLabsClient, TextToSpeechRequest } from './elevenlabs';
+import { ElevenLabsClient, type VoiceSettings } from './elevenlabs';
 import { BaseInterval, OverlayInterval, Channel } from '@/db/schema';
 
 export type AudioGenerationOptions = {
   voiceId: string;
   modelId?: string;
-  voiceSettings?: TextToSpeechRequest['voice_settings'];
+  voiceSettings?: VoiceSettings;
 };
 
 export type AudioGenerationResult = {
@@ -13,15 +13,13 @@ export type AudioGenerationResult = {
 };
 
 export class AudioService {
-  private apiKey: string;
-  private baseUrl = 'https://api.elevenlabs.io/v1';
+  private client: ElevenLabsClient;
 
-  constructor(apiKey: string) {
-    if (!apiKey) {
-      throw new Error('ElevenLabs API key is required');
+  constructor() {
+    if (!process.env.ELEVENLABS_API_KEY) {
+      throw new Error('Missing ELEVENLABS_API_KEY environment variable');
     }
-    this.apiKey = apiKey;
-    console.log('AudioService initialized with API key');
+    this.client = new ElevenLabsClient(process.env.ELEVENLABS_API_KEY!);
   }
 
   // Generate audio for a sequence
@@ -62,67 +60,20 @@ export class AudioService {
     interval: BaseInterval | OverlayInterval,
     options: {
       voiceId: string;
-      voiceSettings?: {
-        stability?: number;
-        similarity_boost?: number;
-        style?: number;
-        use_speaker_boost?: boolean;
-      };
+      voiceSettings?: VoiceSettings;
     }
   ): Promise<AudioGenerationResult> {
     try {
-      const startTime = Date.now();
-
-      // Get text to speak
-      const text = this.getSpokenText(interval);
-      console.log('Generating audio for text:', {
-        text,
-        voiceId: options.voiceId,
-        settings: options.voiceSettings
+      const { audio, generationTime } = await this.client.generateSpeech({
+        text: this.getSpokenText(interval),
+        voice_id: options.voiceId,
+        voice_settings: options.voiceSettings || {
+          stability: 0.5,
+          similarity_boost: 0.75,
+          style: 0.5,
+          use_speaker_boost: true
+        }
       });
-
-      // Make request to ElevenLabs API
-      const response = await fetch(`${this.baseUrl}/text-to-speech/${options.voiceId}`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'xi-api-key': this.apiKey,
-        },
-        body: JSON.stringify({
-          text,
-          model_id: 'eleven_monolingual_v1',
-          voice_settings: options.voiceSettings || {
-            stability: 0.5,
-            similarity_boost: 0.75,
-            style: 0.5,
-            use_speaker_boost: true,
-          },
-        }),
-      });
-
-      if (!response.ok) {
-        const error = await response.json().catch(() => ({ detail: response.statusText }));
-        console.error('ElevenLabs API error:', {
-          status: response.status,
-          statusText: response.statusText,
-          error
-        });
-        throw new Error(`ElevenLabs API error: ${error.detail || 'Unknown error'}`);
-      }
-
-      // Get audio buffer
-      const audio = await response.arrayBuffer();
-      const generationTime = Date.now() - startTime;
-
-      console.log('Received audio buffer:', {
-        size: audio.byteLength,
-        type: response.headers.get('content-type'),
-        generationTime
-      });
-
-      if (!audio || audio.byteLength === 0) {
-        throw new Error('Received empty audio buffer from ElevenLabs');
-      }
 
       return { audio, generationTime };
     } catch (error) {
@@ -144,4 +95,6 @@ export class AudioService {
 
     return interval.label;
   }
-} 
+}
+
+export const audioService = new AudioService(); 

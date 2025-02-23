@@ -2,28 +2,39 @@
 
 import { useState, useEffect, useRef } from 'react';
 import { BaseInterval, OverlayInterval } from '@/db/schema';
-import { COUNTDOWN_CONFIG } from '@/lib/countdown-config';
+import { COUNTDOWN_CONFIG, COUNTDOWN_VOICES } from '@/lib/countdown-config';
+import { toast } from '@/components/ui/use-toast';
+import { useAudioUpload } from '@/hooks/useAudioUpload';
+import { JsonEditor } from './JsonEditor';
+import type { Sequence } from '@/components/channel-editor/ChannelEditor';
 
 type IntervalEditorProps = {
   interval: BaseInterval | OverlayInterval;
   isBaseChannel: boolean;
   totalDuration: number;
   onUpdate: (updates: Partial<BaseInterval | OverlayInterval>) => void;
+  sequenceId: string | number;
+  sequence: Sequence;
+  onSequenceUpdate: (sequence: Sequence) => void;
 };
 
 export function IntervalEditor({ 
   interval, 
   isBaseChannel, 
   totalDuration,
-  onUpdate 
+  onUpdate,
+  sequenceId,
+  sequence,
+  onSequenceUpdate
 }: IntervalEditorProps) {
   const isOverlay = !isBaseChannel;
   const overlayInterval = isOverlay ? interval as OverlayInterval : null;
+  const { uploadAudio } = useAudioUpload();
 
   const [isGenerating, setIsGenerating] = useState(false);
   const [selectedVoice, setSelectedVoice] = useState('21m00Tcm4TlvDq8ikWAM'); // Default to Rachel
   const [isTestingCountdown, setIsTestingCountdown] = useState(false);
-  const countdownAudioRef = useRef<{ [key: string]: HTMLAudioElement }>({});
+  const countdownAudioRef = useRef<HTMLAudioElement | null>(null);
   
   const [debugInfo, setDebugInfo] = useState<{
     lastGeneration?: {
@@ -34,51 +45,85 @@ export function IntervalEditor({
     };
   }>({});
 
+  const [isDebugExpanded, setIsDebugExpanded] = useState(false);
+  const [editedJson, setEditedJson] = useState('');
+  const [jsonError, setJsonError] = useState<string | null>(null);
+
   const inputClasses = "mt-1 block w-full rounded-md border-gray-600 bg-gray-700 text-white shadow-sm focus:border-blue-500 focus:ring-blue-500";
   const labelClasses = "block text-sm font-medium text-gray-300";
 
+  const hasAudio = Boolean(interval.audioFile);
+
   // Initialize countdown audio
   useEffect(() => {
-    const countdownPaths = {
-      one: '/audio/countdown/rachel/one.mp3',
-      two: '/audio/countdown/rachel/two.mp3',
-      three: '/audio/countdown/rachel/three.mp3'
-    };
+    const voice = COUNTDOWN_VOICES.find(v => v.name === 'rachel') ?? 
+                 COUNTDOWN_VOICES.find(v => v.name === COUNTDOWN_CONFIG.DEFAULT_VOICE)!;
+                 
+    const audio = new Audio();
+    audio.src = `${voice.directory}/countdown.mp3`;
+    audio.volume = COUNTDOWN_CONFIG.VOLUME;
+    
+    // Load the audio
+    audio.load();
+    
+    // Wait for audio to be loaded
+    audio.addEventListener('canplaythrough', () => {
+      countdownAudioRef.current = audio;
+    }, { once: true });
 
-    // Create audio elements for countdown
-    Object.entries(countdownPaths).forEach(([key, path]) => {
-      const audio = new Audio(path);
-      audio.volume = COUNTDOWN_CONFIG.VOLUME;
-      countdownAudioRef.current[key] = audio;
-    });
+    audio.addEventListener('error', (e) => {
+      console.error('Error loading countdown audio:', e);
+      toast({
+        title: 'Error',
+        description: 'Failed to load countdown audio',
+        variant: 'destructive',
+      });
+    }, { once: true });
 
     return () => {
-      Object.values(countdownAudioRef.current).forEach(audio => {
-        audio.pause();
-        audio.currentTime = 0;
-      });
+      if (countdownAudioRef.current) {
+        countdownAudioRef.current.pause();
+        countdownAudioRef.current.currentTime = 0;
+        countdownAudioRef.current = null;
+      }
     };
   }, []);
 
-  // Test countdown audio sequence
-  const playTestCountdown = async () => {
-    setIsTestingCountdown(true);
-    const numbers = ['three', 'two', 'one'] as const;
-    
-    try {
-      for (const number of numbers) {
-        const audio = countdownAudioRef.current[number];
-        if (audio) {
-          audio.currentTime = 0;
-          await audio.play();
-          await new Promise(resolve => setTimeout(resolve, COUNTDOWN_CONFIG.INTERVAL));
-        }
-      }
-    } catch (error) {
-      console.error('Error playing countdown:', error);
+  const handleTestCountdown = () => {
+    if (isTestingCountdown || !countdownAudioRef.current) {
+      console.log('Cannot play countdown: ', {
+        isTestingCountdown,
+        hasAudio: Boolean(countdownAudioRef.current)
+      });
+      return;
     }
     
-    setIsTestingCountdown(false);
+    setIsTestingCountdown(true);
+    const audio = countdownAudioRef.current;
+    
+    const volume = interval.volume ?? 1;
+    audio.volume = volume * COUNTDOWN_CONFIG.VOLUME;
+
+    const playCountdown = async () => {
+      try {
+        audio.currentTime = 0;
+        await audio.play();
+        await new Promise(resolve => {
+          audio.onended = resolve;
+        });
+      } catch (error) {
+        console.error('Failed to play countdown:', error);
+        toast({
+          title: 'Error',
+          description: 'Failed to play countdown audio',
+          variant: 'destructive',
+        });
+      } finally {
+        setIsTestingCountdown(false);
+      }
+    };
+
+    playCountdown().catch(console.error);
   };
 
   // Get text that will be spoken
@@ -95,33 +140,29 @@ export function IntervalEditor({
   };
 
   // Generate audio for this interval
-  const generateAudio = async () => {
-    const text = getSpokenText();
-    const startTime = Date.now();
+  const handleGenerateAudio = async () => {
+    if (!selectedVoice) {
+      toast({
+        title: 'Error',
+        description: 'Please select a voice first',
+        variant: 'destructive',
+      });
+      return;
+    }
+
     setIsGenerating(true);
-    setDebugInfo(prev => ({
-      ...prev,
-      lastGeneration: {
-        timestamp: new Date().toISOString(),
-        text,
-        duration: 0
-      }
-    }));
+    const startTime = Date.now();
 
     try {
-      console.log('Generating audio for:', {
-        intervalId: interval.id,
-        text,
-        voice: selectedVoice,
-        isOverlay,
-        duration: interval.duration
-      });
-
       const response = await fetch('/api/audio', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          interval,
+          interval: {
+            id: interval.id,
+            label: interval.label,
+            text: interval.spokenLabel || interval.label
+          },
           options: {
             voiceId: selectedVoice,
             voiceSettings: {
@@ -131,53 +172,66 @@ export function IntervalEditor({
               use_speaker_boost: true,
             },
           },
+          metadata: {
+            sequenceId: sequenceId.toString(),
+            sequenceName: isBaseChannel ? 'Base Channel' : interval.type,
+            intervalId: interval.id,
+            channelType: isBaseChannel ? 'base' : 'overlay',
+          }
         }),
       });
 
-      if (!response.ok) {
-        const errorData = await response.json().catch(() => ({}));
-        throw new Error(errorData.error || 'Failed to generate audio');
+      let errorData;
+      let responseData;
+      try {
+        responseData = await response.json();
+        if (!response.ok) {
+          errorData = responseData;
+          throw new Error(responseData.error || `Failed to generate audio: ${response.status} ${response.statusText}`);
+        }
+      } catch (parseError) {
+        if (errorData) {
+          throw new Error(errorData.error || 'Failed to generate audio');
+        }
+        console.error('Failed to parse response:', parseError);
+        throw new Error('Invalid response from server');
       }
 
-      const { url } = await response.json();
-      console.log('Audio generated successfully:', {
-        intervalId: interval.id,
-        url,
-        duration: Date.now() - startTime
-      });
+      const { url } = responseData;
+      onUpdate({ audioFile: url });
 
-      onUpdate({ 
-        style: { 
-          ...interval.style, 
-          audioFile: url 
-        } 
-      });
-
-      setDebugInfo(prev => ({
-        ...prev,
+      setDebugInfo({
         lastGeneration: {
-          ...prev.lastGeneration!,
-          duration: Date.now() - startTime
+          timestamp: new Date().toISOString(),
+          text: interval.spokenLabel || interval.label,
+          duration: Date.now() - startTime,
         }
-      }));
+      });
+
+      toast({
+        title: 'Success',
+        description: 'Audio generated successfully',
+      });
     } catch (error) {
       console.error('Error generating audio:', error);
-      setDebugInfo(prev => ({
-        ...prev,
-        lastGeneration: {
-          ...prev.lastGeneration!,
-          error: error instanceof Error ? error.message : 'Unknown error'
-        }
-      }));
-      alert('Failed to generate audio. Please check the console for details.');
+      
+      // Extract the most useful error message
+      let errorMessage = 'Failed to generate audio';
+      if (error instanceof Error) {
+        errorMessage = error.message;
+      } else if (typeof error === 'object' && error !== null) {
+        errorMessage = (error as any).error || (error as any).message || JSON.stringify(error);
+      }
+
+      toast({
+        title: 'Error',
+        description: errorMessage,
+        variant: 'destructive',
+      });
     } finally {
       setIsGenerating(false);
     }
   };
-
-  // Check if we have all required audio
-  const hasAudio = Boolean(interval.style.audioFile);
-  const needsAudio = !hasAudio;
 
   return (
     <div className="space-y-4">
@@ -200,17 +254,23 @@ export function IntervalEditor({
               <span className="text-xs text-gray-500">(for voice generation)</span>
             </span>
           </label>
-          <input
-            type="text"
-            value={overlayInterval?.spokenLabel ?? ''}
-            onChange={(e) => {
-              if (isOverlay) {
-                onUpdate({ spokenLabel: e.target.value || undefined });
-              }
-            }}
-            className={inputClasses}
-            placeholder="Leave empty to use written label for voice generation"
-          />
+          {isOverlay ? (
+            <input
+              type="text"
+              value={overlayInterval?.spokenLabel || ''}
+              onChange={(e) => onUpdate({ spokenLabel: e.target.value || undefined })}
+              className={inputClasses}
+              placeholder="Leave empty to use written label for voice generation"
+            />
+          ) : (
+            <input
+              type="text"
+              value=""
+              disabled
+              className={`${inputClasses} opacity-50`}
+              placeholder="Spoken labels only available for overlay intervals"
+            />
+          )}
           {isOverlay && overlayInterval?.spokenLabel && (
             <p className="mt-1 text-xs text-blue-400">
               Using custom pronunciation
@@ -253,17 +313,17 @@ export function IntervalEditor({
           <label className={labelClasses}>Color</label>
           <input
             type="color"
-            value={interval.style.color}
-            onChange={(e) => onUpdate({ style: { ...interval.style, color: e.target.value } })}
-            className="mt-1 block w-full h-10 rounded-md bg-gray-700 border-gray-600"
+            value={interval.color}
+            onChange={(e) => onUpdate({ color: e.target.value })}
+            className={`${inputClasses} h-10`}
           />
         </div>
         <div>
           <label className={labelClasses}>Volume</label>
           <input
             type="range"
-            value={interval.style.volume ?? 1}
-            onChange={(e) => onUpdate({ style: { ...interval.style, volume: Number(e.target.value) } })}
+            value={interval.volume ?? 1}
+            onChange={(e) => onUpdate({ volume: Number(e.target.value) })}
             min={0}
             max={1}
             step={0.1}
@@ -278,7 +338,7 @@ export function IntervalEditor({
           <div className="flex items-center justify-between">
             <label className={labelClasses}>Countdown Audio</label>
             <button
-              onClick={playTestCountdown}
+              onClick={handleTestCountdown}
               disabled={isTestingCountdown}
               className={`px-3 py-1.5 rounded text-white text-sm transition-colors
                 ${isTestingCountdown
@@ -309,120 +369,143 @@ export function IntervalEditor({
           </div>
           <div className="text-sm text-gray-400 space-y-1">
             <p>• Countdown starts {COUNTDOWN_CONFIG.START_TIME / 1000} seconds before interval</p>
-            <p>• {COUNTDOWN_CONFIG.INTERVAL / 1000} second between numbers</p>
+            <p>• {COUNTDOWN_CONFIG.DURATION / 1000} second countdown duration</p>
             <p>• Volume set to {Math.round(COUNTDOWN_CONFIG.VOLUME * 100)}% of main audio</p>
           </div>
         </div>
       )}
 
-      {/* Audio Generation */}
-      <div className="space-y-2">
-        <div className="flex items-center justify-between">
+      {/* Audio File */}
+      <div>
+        <div className="flex items-center gap-4">
           <label className={labelClasses}>Audio</label>
-          <div className="flex items-center gap-2">
-            {hasAudio ? (
-              <span className="text-xs text-green-400 flex items-center gap-1">
-                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                </svg>
-                Audio Ready
-              </span>
+          <div className="flex gap-2">
+            {interval.audioFile ? (
+              <>
+                <button
+                  onClick={() => onUpdate({ audioFile: '' })}
+                  className="text-xs text-red-500 hover:text-red-400"
+                >
+                  Remove
+                </button>
+                <button
+                  onClick={() => {
+                    // Check if this is already an UploadThing URL
+                    if (!interval.audioFile) return;
+                    
+                    const url = interval.audioFile;
+                    if (url.includes('ufs.sh/f/') || url.includes('utfs.io/f/')) {
+                      // Already an UploadThing URL
+                      toast({
+                        title: 'Info',
+                        description: 'This is already an UploadThing URL',
+                      });
+                      return;
+                    }
+
+                    // Extract just the filename
+                    const filename = url.split('/').pop();
+                    if (!filename) {
+                      toast({
+                        title: 'Error',
+                        description: 'Invalid file path',
+                        variant: 'destructive',
+                      });
+                      return;
+                    }
+
+                    // For now, just show a message that we need to re-upload
+                    toast({
+                      title: 'Action Required',
+                      description: 'Please use the Generate button to upload this audio to UploadThing',
+                      variant: 'destructive',
+                    });
+                  }}
+                  className="text-xs text-blue-500 hover:text-blue-400"
+                >
+                  Check UploadThing URL
+                </button>
+              </>
             ) : (
-              <span className="text-xs text-yellow-400 flex items-center gap-1">
-                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
-                </svg>
-                Needs Audio
-              </span>
+              <button
+                onClick={handleGenerateAudio}
+                disabled={isGenerating}
+                className={`px-3 py-1.5 rounded text-white text-sm transition-colors
+                  ${isGenerating ? 'bg-gray-600 cursor-not-allowed' : 'bg-blue-600 hover:bg-blue-500'}`}
+              >
+                {isGenerating ? 'Generating...' : 'Generate'}
+              </button>
             )}
           </div>
         </div>
 
-        <div className="grid grid-cols-2 gap-2">
-          <select
-            value={selectedVoice}
-            onChange={(e) => setSelectedVoice(e.target.value)}
-            className={`${inputClasses} text-sm`}
-            disabled={isGenerating}
-          >
-            <option value="21m00Tcm4TlvDq8ikWAM">Rachel (English - US)</option>
-            <option value="AZnzlk1XvdvUeBnXmlld">Domi (English - US)</option>
-            <option value="EXAVITQu4vr4xnSDxMaL">Bella (English - US)</option>
-            <option value="ErXwobaYiN019PkySvjV">Antoni (English - US)</option>
-          </select>
-
-          <button
-            onClick={generateAudio}
-            disabled={isGenerating}
-            className={`px-3 py-1.5 rounded text-white text-sm transition-colors
-              ${isGenerating
-                ? 'bg-blue-600 cursor-not-allowed'
-                : 'bg-blue-500 hover:bg-blue-600 active:bg-blue-700'
-              }`}
-          >
-            <span className="flex items-center justify-center gap-2">
-              {isGenerating ? (
+        {interval.audioFile && (
+          <div className="mt-2">
+            <div className="text-xs text-gray-400 mb-1">
+              {(interval.audioFile.includes('ufs.sh/f/') || interval.audioFile.includes('utfs.io/f/')) ? (
                 <>
-                  <svg className="animate-spin h-4 w-4" viewBox="0 0 24 24">
-                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />
-                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
-                  </svg>
-                  Generating...
+                  <span className="font-medium text-green-400">UploadThing URL</span>
+                  <span className="mx-1">•</span>
+                  <span>File: {interval.audioFile.split('/').pop()}</span>
                 </>
               ) : (
                 <>
-                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z" />
-                  </svg>
-                  Generate Audio
-                </>
-              )}
-            </span>
-          </button>
-        </div>
-
-        {hasAudio && (
-          <div className="flex items-center gap-2 text-xs text-gray-400">
-            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z" />
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-            </svg>
-            <audio src={interval.style.audioFile} controls className="h-8 w-48" />
-          </div>
-        )}
-
-        <div className="text-xs text-gray-400 mt-1">
-          Will speak: "{getSpokenText()}"
-        </div>
-
-        {/* Debug Info */}
-        {debugInfo.lastGeneration && (
-          <div className="mt-4 p-3 bg-gray-900 rounded-md text-xs font-mono">
-            <div className="text-gray-400">Last Generation:</div>
-            <div className="grid grid-cols-2 gap-x-4 gap-y-1 mt-1">
-              <div className="text-gray-500">Timestamp:</div>
-              <div className="text-gray-300">{new Date(debugInfo.lastGeneration.timestamp).toLocaleString()}</div>
-              
-              <div className="text-gray-500">Text:</div>
-              <div className="text-gray-300">{debugInfo.lastGeneration.text}</div>
-              
-              <div className="text-gray-500">Duration:</div>
-              <div className="text-gray-300">
-                {debugInfo.lastGeneration.duration ? 
-                  `${debugInfo.lastGeneration.duration}ms` : 
-                  'In progress...'}
-              </div>
-
-              {debugInfo.lastGeneration.error && (
-                <>
-                  <div className="text-gray-500">Error:</div>
-                  <div className="text-red-400">{debugInfo.lastGeneration.error}</div>
+                  <span className="font-medium text-yellow-400">Local Path</span>
+                  <span className="mx-1">•</span>
+                  <span>Warning: This file needs to be uploaded to UploadThing</span>
                 </>
               )}
             </div>
+            <div className="text-xs text-gray-500 mb-2 break-all">
+              {interval.audioFile}
+            </div>
+            <audio
+              src={interval.audioFile}
+              controls
+              className="w-full"
+            />
+          </div>
+        )}
+
+        {isGenerating && (
+          <div className="mt-2 text-sm text-gray-400">
+            Will speak: "{interval.spokenLabel || interval.label}"
           </div>
         )}
       </div>
+
+      {/* Audio Preview */}
+      {interval.audioFile && (
+        <div className="mt-4">
+          <label className={labelClasses}>Audio Preview</label>
+          <audio
+            src={interval.audioFile}
+            controls
+            className="w-full mt-1"
+          />
+        </div>
+      )}
+
+      {/* Audio Status */}
+      <div className="flex items-center gap-2">
+        <div className={`w-2 h-2 rounded-full ${interval.audioFile ? 'bg-green-500' : 'bg-yellow-500'}`} />
+        <span className="text-xs text-gray-400">
+          {interval.audioFile ? 'Audio Ready' : 'Needs Audio'}
+        </span>
+      </div>
+
+      {/* Debug Info */}
+      {debugInfo.lastGeneration && (
+        <div className="mt-4 text-xs text-gray-400">
+          <div>Last Generation:</div>
+          <div>Time: {debugInfo.lastGeneration.timestamp}</div>
+          <div>Text: {debugInfo.lastGeneration.text}</div>
+          <div>Duration: {debugInfo.lastGeneration.duration}ms</div>
+          {debugInfo.lastGeneration.error && (
+            <div className="text-red-400">Error: {debugInfo.lastGeneration.error}</div>
+          )}
+        </div>
+      )}
 
       {/* Notes (for overlay intervals) */}
       {isOverlay && (
@@ -443,42 +526,34 @@ export function IntervalEditor({
           <label className={labelClasses}>Media</label>
           <input
             type="text"
-            value={overlayInterval?.media?.imageUrl ?? ''}
-            onChange={(e) => onUpdate({ 
-              media: { 
-                ...overlayInterval?.media,
-                imageUrl: e.target.value 
-              } 
-            })}
+            value={overlayInterval?.imageUrl ?? ''}
+            onChange={(e) => onUpdate({ imageUrl: e.target.value })}
             placeholder="Image URL"
             className={inputClasses}
           />
           <input
             type="text"
-            value={overlayInterval?.media?.imageAlt ?? ''}
-            onChange={(e) => onUpdate({ 
-              media: { 
-                ...overlayInterval?.media,
-                imageAlt: e.target.value 
-              } 
-            })}
+            value={overlayInterval?.imageAlt ?? ''}
+            onChange={(e) => onUpdate({ imageAlt: e.target.value })}
             placeholder="Alt Text"
             className={inputClasses}
           />
           <input
             type="text"
-            value={overlayInterval?.media?.caption ?? ''}
-            onChange={(e) => onUpdate({ 
-              media: { 
-                ...overlayInterval?.media,
-                caption: e.target.value 
-              } 
-            })}
+            value={overlayInterval?.imageCaption ?? ''}
+            onChange={(e) => onUpdate({ imageCaption: e.target.value })}
             placeholder="Caption"
             className={inputClasses}
           />
         </div>
       )}
+
+      <JsonEditor 
+        sequence={sequence}
+        selectedInterval={interval}
+        onSequenceUpdate={onSequenceUpdate}
+        debugInfo={debugInfo}
+      />
     </div>
   );
 } 

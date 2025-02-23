@@ -1,152 +1,111 @@
-import { BaseChannel, OverlayChannel } from './schema';
-
-// A short push-up workout with tutorial and encouragement channels
-export const pushupSequence = {
-  name: "Quick Push-up Challenge",
-  description: "A short push-up workout with form guidance",
-  isPublic: true,
-  tags: ["workout", "pushups", "beginner"],
-  channels: [
-    // Base Channel - Defines core timeline
-    {
-      type: 'base' as const,
-      name: "Workout",
-      isEnabled: true,
-      volume: 1.0,
-      intervals: [
-        {
-          id: "prep1",
-          duration: 10000, // 10 seconds
-          label: "Get Ready",
-          style: {
-            color: "#FFA500", // Orange
-            audioFile: "/audio/get-ready-a2c3cb1ea2d8.mp3"
-          }
-        },
-        {
-          id: "work1",
-          duration: 30000, // 30 seconds
-          label: "Push-ups",
-          style: {
-            color: "#FF4444", // Red
-            audioFile: "/audio/pushups-f80cf8340665.mp3"
-          }
-        },
-        {
-          id: "rest1",
-          duration: 20000, // 20 seconds
-          label: "Rest",
-          style: {
-            color: "#4CAF50", // Green
-            audioFile: "/audio/rest-744ad1411ed1.mp3"
-          }
-        },
-        {
-          id: "work2",
-          duration: 30000, // 30 seconds
-          label: "Push-ups",
-          style: {
-            color: "#FF4444", // Red
-            audioFile: "/audio/pushups-f80cf8340665.mp3"
-          }
-        }
-      ]
-    } as BaseChannel,
-
-    // Tutorial Channel - Form guidance with specific timing
-    {
-      type: 'tutorial' as const,
-      name: "Form Guide",
-      isEnabled: true,
-      volume: 0.8,
-      intervals: [
-        {
-          id: "tut1",
-          startTime: 5000,  // 5 seconds into prep
-          duration: 5000,   // 5 second tip
-          label: "Get Ready",
-          spokenLabel: "Get in position on your mat",
-          style: { 
-            color: "#2196F3",
-            audioFile: "/audio/get-in-position-6w-51d933ab4114.mp3"
-          }
-        },
-        {
-          id: "tut2",
-          startTime: 12000, // 2 seconds into first push-ups
-          duration: 8000,   // 8 second form check
-          label: "Form Check",
-          spokenLabel: "Keep your core tight and back straight",
-          notes: "Elbows at 45 degrees, hands shoulder-width apart",
-          media: {
-            imageUrl: "/images/pushup-form.jpg",
-            imageAlt: "Proper push-up form showing straight back and elbow position",
-            caption: "Maintain a straight line from head to heels"
-          },
-          style: { 
-            color: "#2196F3",
-            audioFile: "/audio/keep-your-core-7w-bf84dee4fa84.mp3"
-          }
-        },
-        {
-          id: "tut3",
-          startTime: 62000, // 2 seconds into second push-ups
-          duration: 8000,   // 8 second form reminder
-          label: "Form Check",
-          spokenLabel: "Focus on full range of motion",
-          style: { 
-            color: "#2196F3",
-            audioFile: "/audio/focus-on-full-6w-10836a103772.mp3"
-          }
-        }
-      ]
-    } as OverlayChannel,
-
-    // Encouragement Channel - Motivation at specific moments
-    {
-      type: 'encouragement' as const,
-      name: "Motivation",
-      isEnabled: true,
-      volume: 0.7,
-      intervals: [
-        {
-          id: "enc1",
-          startTime: 25000, // 15 seconds into first push-ups
-          duration: 5000,   // 5 second encouragement
-          label: "Keep Going!",
-          spokenLabel: "You're doing great, keep pushing!",
-          style: { 
-            color: "#9C27B0",
-            audioFile: "/audio/youre-doing-great-5w-3a0543369d1c.mp3"
-          }
-        },
-        {
-          id: "enc2",
-          startTime: 75000, // 15 seconds into second push-ups
-          duration: 5000,   // 5 second encouragement
-          label: "Final Push!",
-          spokenLabel: "Last few reps, give it everything!",
-          style: { 
-            color: "#9C27B0",
-            audioFile: "/audio/last-few-reps-6w-780df4c4fc16.mp3"
-          }
-        }
-      ]
-    } as OverlayChannel
-  ]
-} as const;
-
-// Base Channel Timeline (90 seconds total):
-// 0s-10s:  Prep    (10s)
-// 10s-40s: Push-ups (30s)
-// 40s-60s: Rest    (20s)
-// 60s-90s: Push-ups (30s)
-
-// Tutorial Triggers:
-// 5s-10s:   Get ready tip
-// 12s-20s:  Initial form check
-// 62s-70s:  Form reminder
-
-// Encouragement Triggers:
-// 25s-30s:  First encouragement
-// 75s-80s:  Final push motivation 
+export const guidedMeditationSequence: Channel[] = [
+  {
+    type: 'base',
+    name: 'Meditation Base',
+    isEnabled: true,
+    volume: 0.3,
+    intervals: [
+      {
+        id: 'meditation-base',
+        type: 'base',
+        label: 'Meditation Session',
+        duration: 300000, // 5 minutes
+        color: '#3F51B5',
+        audioFile: 'https://hpcsoxi085.ufs.sh/f/7ebC5M2tZCOJIZ9NLvjL7zdMQaVK0mi2xnRwUOWbSqs5Cye9',
+        volume: 0.3
+      }
+    ]
+  },
+  {
+    type: 'tutorial',
+    name: 'Meditation Guide',
+    isEnabled: true,
+    volume: 1,
+    intervals: [
+      {
+        id: 'intro',
+        type: 'overlay',
+        label: 'Welcome and Preparation',
+        startTime: 0,
+        duration: 30000, // 30 seconds
+        color: '#9C27B0',
+        notes: 'Welcome and initial relaxation guidance. Finding comfortable position and initial breath awareness.',
+        spokenLabel: '<speak><prosody rate="slow" pitch="-2st">Welcome to this guided meditation. <break time="1s"/> Find a comfortable position, either sitting or lying down, where you can remain still for the next few minutes. <break time="1s"/> Take a slow, deep breath in through your nose... <break time="2s"/> and exhale gently through your mouth. <break time="2s"/> Let your eyes close softly, or maintain a gentle gaze downward. <break time="1s"/> Allow your body to begin releasing any tension or stress you\'ve been holding. <break time="1s"/> Take another deep, nourishing breath.</prosody></speak>',
+        audioFile: 'https://hpcsoxi085.ufs.sh/f/7ebC5M2tZCOJhEENE6p1AWudzT3ZfBSG7Qp8J1Ml5kI0DVwi',
+        volume: 1
+      },
+      {
+        id: 'breathing-1',
+        type: 'overlay',
+        label: 'Initial Breath Focus',
+        startTime: 30000, // 0:30
+        duration: 45000, // 45 seconds
+        color: '#E91E63',
+        notes: 'Focusing attention on natural breath rhythm. Using breath as anchor for awareness.',
+        spokenLabel: '<speak><prosody rate="slow" pitch="-2st">Now, bring your full attention to your breathing. <break time="1s"/> Notice the natural rhythm of your breath without trying to change it. <break time="2s"/> Feel the gentle rise and fall of your chest and belly with each breath. <break time="2s"/> As you breathe in, imagine drawing in fresh, peaceful energy. <break time="2s"/> As you breathe out, feel yourself letting go of any tension or worries. <break time="2s"/> With each inhale, your body becomes more relaxed. <break time="2s"/> With each exhale, you sink a little deeper into this moment. <break time="2s"/> If your mind begins to wander, gently guide it back to your breath, like redirecting a small child with kindness.</prosody></speak>',
+        audioFile: 'https://hpcsoxi085.ufs.sh/f/7ebC5M2tZCOJiURY5IL1SlNvJzE5stKuLMQ7xBrIejoh0Tad',
+        volume: 1
+      },
+      {
+        id: 'body-scan-1',
+        type: 'overlay',
+        label: 'Body Scan Start',
+        startTime: 75000, // 1:15
+        duration: 45000, // 45 seconds
+        color: '#FF5722',
+        notes: 'Beginning body scan with feet and legs. Observing sensations and releasing tension.',
+        spokenLabel: '<speak><prosody rate="slow" pitch="-2st">While maintaining this gentle awareness of your breath, bring your attention to your feet and toes. <break time="2s"/> Notice any sensations present - perhaps warmth, tingling, or pressure where they meet the floor. <break time="2s"/> Without trying to change anything, simply observe these sensations with curiosity. <break time="2s"/> Gradually, let this awareness flow up through your ankles into your calves and knees. <break time="2s"/> Feel the weight of your legs releasing into the ground. <break time="2s"/> Notice any tension in your leg muscles and with each exhale, invite these muscles to soften and relax even more. <break time="2s"/> Take your time here, exploring any sensations with gentle interest.</prosody></speak>',
+        audioFile: 'https://hpcsoxi085.ufs.sh/f/7ebC5M2tZCOJWLKOdJ5P6SAIUwDKW4xNHn31JzTLFuXsZab0',
+        volume: 1
+      },
+      {
+        id: 'body-scan-2',
+        type: 'overlay',
+        label: 'Body Scan Middle',
+        startTime: 120000, // 2:00
+        duration: 45000, // 45 seconds
+        color: '#FF5722',
+        notes: 'Continuing body scan through back and shoulders. Releasing tension with breath awareness.',
+        spokenLabel: '<speak><prosody rate="slow" pitch="-2st">Now bring your awareness to your lower back, allowing it to soften and release. <break time="2s"/> Notice how your back is supported, whether by a chair or the floor. <break time="2s"/> Let this awareness expand to include your entire back, from your tailbone up to your shoulders. <break time="2s"/> With each breath, feel your back expanding and contracting. <break time="2s"/> If you notice any areas of tension, breathe into them gently. <break time="2s"/> Imagine your breath could reach these places, bringing warmth and relaxation. <break time="2s"/> Your shoulders can release any burden they\'ve been carrying. <break time="2s"/> Feel them becoming soft and heavy, melting like snow in warm sunlight.</prosody></speak>',
+        audioFile: 'https://hpcsoxi085.ufs.sh/f/7ebC5M2tZCOJRFcB0SaNbeBxjXUWZKo7ACFmuJTf6yHwLSv3',
+        volume: 1
+      },
+      {
+        id: 'body-scan-3',
+        type: 'overlay',
+        label: 'Body Scan End',
+        startTime: 165000, // 2:45
+        duration: 45000, // 45 seconds
+        color: '#FF5722',
+        notes: 'Completing body scan with neck, face, and head. Establishing full-body relaxation awareness.',
+        spokenLabel: '<speak><prosody rate="slow" pitch="-2st">Let your attention flow up into your neck and throat. <break time="2s"/> Notice if you\'re holding any tension here and allow it to dissolve with each breath. <break time="2s"/> Feel this wave of relaxation moving into your jaw - let it soften and release. <break time="2s"/> Your tongue can relax in your mouth, and your facial muscles can smooth out and let go. <break time="2s"/> Feel this gentle release moving through your cheeks, your forehead, even your scalp. <break time="2s"/> Your entire head can feel light and free. <break time="2s"/> Notice how your whole body is now in a state of deep relaxation, while remaining alert and aware. <break time="2s"/> Each breath continues to bring you deeper into this peaceful state.</prosody></speak>',
+        audioFile: 'https://hpcsoxi085.ufs.sh/f/7ebC5M2tZCOJkPFUEBZqpoKS1lgR4W3ejzEa5uYbdNXc8BA0',
+        volume: 1
+      },
+      {
+        id: 'mindfulness',
+        type: 'overlay',
+        label: 'Present Moment Awareness',
+        startTime: 210000, // 3:30
+        duration: 45000, // 45 seconds
+        color: '#673AB7',
+        notes: 'Cultivating mindful awareness. Observing thoughts without attachment.',
+        spokenLabel: '<speak><prosody rate="slow" pitch="-2st">Now, rest in this space of complete awareness. <break time="2s"/> Your body is relaxed but your mind is clear and present. <break time="2s"/> Notice how thoughts may arise in your mind - perhaps about the past, or the future. <break time="2s"/> Watch them as they appear, like clouds in a vast sky. <break time="2s"/> There\'s no need to follow them or push them away. <break time="2s"/> Simply observe them passing by, always returning to the anchor of your breath. <break time="2s"/> Feel the wholeness of this moment - the sensations in your body, the rhythm of your breath, the peaceful quality of your mind. <break time="2s"/> Each moment is complete, just as it is.</prosody></speak>',
+        audioFile: 'https://hpcsoxi085.ufs.sh/f/7ebC5M2tZCOJ3GYQFzcw9TQXVKa23FoZYycRn6vLrsh7eB8k',
+        volume: 1
+      },
+      {
+        id: 'closing',
+        type: 'overlay',
+        label: 'Closing Guidance',
+        startTime: 255000, // 4:15
+        duration: 45000, // 45 seconds
+        color: '#2196F3',
+        notes: 'Gentle return to regular awareness. Integrating meditation experience.',
+        spokenLabel: '<speak><prosody rate="slow" pitch="-2st">As we begin to draw this meditation to a close, take a few deeper breaths. <break time="2s"/> Feel the fullness of your inhale, and the complete release of your exhale. <break time="2s"/> Gradually begin to reawaken your body by making small movements in your fingers and toes. <break time="2s"/> Take a gentle stretch if that feels right. <break time="2s"/> When you\'re ready, slowly open your eyes, allowing them to readjust to the light. <break time="2s"/> Take a moment to notice how you feel - physically, mentally, and emotionally. <break time="2s"/> Carry this sense of peace and clarity with you as you return to your day. <break time="2s"/> Thank you for taking this time for yourself.</prosody></speak>',
+        audioFile: 'https://hpcsoxi085.ufs.sh/f/7ebC5M2tZCOJZ0WxRZlbzfo1LRNh02V9QmnHWdxUFID4kvJC',
+        volume: 1
+      }
+    ]
+  }
+];
