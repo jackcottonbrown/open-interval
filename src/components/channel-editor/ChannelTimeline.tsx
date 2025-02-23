@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Channel, BaseChannel, OverlayInterval } from '@/db/schema';
+import { Channel, BaseChannel, OverlayInterval, BaseInterval } from '@/db/schema';
 
 type ChannelTimelineProps = {
   channels: Channel[];
@@ -118,8 +118,8 @@ export function ChannelTimeline({
                 {channel.intervals.map(interval => {
                   // Calculate position and width
                   const startPosition = channel.type === 'base'
-                    ? channel.intervals
-                        .slice(0, channel.intervals.indexOf(interval))
+                    ? (channel as BaseChannel).intervals
+                        .slice(0, (channel as BaseChannel).intervals.indexOf(interval as BaseInterval))
                         .reduce((sum, int) => sum + int.duration, 0)
                     : (interval as OverlayInterval).startTime;
                   

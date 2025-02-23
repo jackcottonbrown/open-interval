@@ -97,7 +97,7 @@ async function updateSequenceAudio(sequenceId: string) {
     console.log('\nUpdating sequence in database...');
     const [updatedSequence] = await db.update(sequences)
       .set({
-        channels: updatedChannels,
+        channels: updatedChannels as Channel[],
         updatedAt: new Date(),
       })
       .where(eq(sequences.id, parseInt(sequenceId)))

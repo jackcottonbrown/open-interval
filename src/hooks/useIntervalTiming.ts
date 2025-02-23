@@ -1,4 +1,4 @@
-import { Channel, BaseChannel, OverlayInterval } from '@/db/schema';
+import { Channel, BaseChannel, OverlayChannel, BaseInterval, OverlayInterval } from '@/db/schema';
 
 type UpdateSequence = (sequence: {
   channels: Channel[];
@@ -24,25 +24,31 @@ export function useIntervalTiming(onSequenceUpdate: UpdateSequence) {
 
     const updatedChannels = sequence.channels.map(channel => {
       if (channel.type === selectedChannelType) {
-        const updatedIntervals = channel.intervals.map(interval => {
-          if (selectedIntervalIds.has(interval.id)) {
-            const overlay = interval as OverlayInterval;
-            const newStartTime = Math.max(0, Math.min(
-              totalDuration - overlay.duration,
-              overlay.startTime + timeChange
-            ));
-            return {
-              ...overlay,
-              startTime: newStartTime
-            };
-          }
-          return interval;
-        });
+        if (channel.type === 'base') {
+          // For base channels, we don't adjust timing
+          return channel;
+        } else {
+          // For overlay channels, adjust the startTime
+          const overlayChannel = channel as OverlayChannel;
+          const updatedIntervals = overlayChannel.intervals.map(interval => {
+            if (selectedIntervalIds.has(interval.id)) {
+              const newStartTime = Math.max(0, Math.min(
+                totalDuration - interval.duration,
+                interval.startTime + timeChange
+              ));
+              return {
+                ...interval,
+                startTime: newStartTime
+              };
+            }
+            return interval;
+          });
 
-        return {
-          ...channel,
-          intervals: updatedIntervals
-        };
+          return {
+            ...overlayChannel,
+            intervals: updatedIntervals
+          };
+        }
       }
       return channel;
     });

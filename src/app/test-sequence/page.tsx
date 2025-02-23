@@ -69,7 +69,7 @@ export default function TestSequencePage() {
               </SelectTrigger>
               <SelectContent>
                 {sequences.map((seq) => (
-                  <SelectItem key={seq.id} value={seq.id.toString()}>
+                  <SelectItem key={seq.id} value={String(seq.id ?? '')}>
                     {seq.name}
                   </SelectItem>
                 ))}

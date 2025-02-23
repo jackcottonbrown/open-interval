@@ -123,12 +123,15 @@ function LoadingGrid() {
   );
 }
 
-export default async function ExplorePage({
-  searchParams,
-}: {
-  searchParams?: { [key: string]: string | string[] | undefined };
-}) {
-  const page = typeof searchParams?.page === 'string' ? parseInt(searchParams.page) : 1;
+type PageProps = {
+  searchParams?: Promise<{ [key: string]: string | string[] | undefined }>;
+};
+
+export default async function PublicSequencesPage({
+  searchParams
+}: PageProps) {
+  const resolvedSearchParams = await (searchParams ?? Promise.resolve({ page: '1' }));
+  const page = typeof resolvedSearchParams.page === 'string' ? parseInt(resolvedSearchParams.page) : 1;
   const { sequences: publicSequences, pagination } = await getPublicSequences(page);
 
   return (

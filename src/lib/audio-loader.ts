@@ -17,7 +17,7 @@ export class AudioLoader {
     // Collect all intervals that need audio
     channels.forEach(channel => {
       channel.intervals.forEach(interval => {
-        if (interval.style.audioFile) {
+        if (interval.audioFile) {
           loadPromises.push(
             this.loadAudio(interval)
               .then(status => {
@@ -37,7 +37,7 @@ export class AudioLoader {
 
   // Load audio for a single interval
   private async loadAudio(interval: BaseInterval | OverlayInterval): Promise<AudioLoadStatus> {
-    const audioFile = interval.style.audioFile;
+    const audioFile = interval.audioFile;
     if (!audioFile) {
       return { isLoaded: false };
     }
@@ -61,7 +61,7 @@ export class AudioLoader {
       });
 
       // Set initial volume
-      audio.volume = interval.style.volume ?? 1;
+      audio.volume = interval.volume ?? 1;
 
       const status = { isLoaded: true, audio };
       this.audioCache.set(audioFile, status);
@@ -78,10 +78,10 @@ export class AudioLoader {
 
   // Get audio status for an interval
   getAudioStatus(interval: BaseInterval | OverlayInterval): AudioLoadStatus {
-    if (!interval.style.audioFile) {
+    if (!interval.audioFile) {
       return { isLoaded: false };
     }
-    return this.audioCache.get(interval.style.audioFile) ?? { isLoaded: false };
+    return this.audioCache.get(interval.audioFile) ?? { isLoaded: false };
   }
 
   // Clear all cached audio

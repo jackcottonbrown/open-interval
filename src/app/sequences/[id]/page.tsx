@@ -6,17 +6,19 @@ import { PublicSequencePlayer } from "@/components/public-sequence-player/Public
 import { formatDistanceToNow } from "date-fns";
 import { User, Clock, Tag } from "lucide-react";
 
-interface PageProps {
+type PageProps = {
   params: Promise<{ id: string }>;
   searchParams?: Promise<{ [key: string]: string | string[] | undefined }>;
-}
+};
 
 export default async function SequencePage({ 
   params,
   searchParams 
 }: PageProps) {
-  // Await the params and searchParams promises
-  const resolvedParams = await params;
+  const [resolvedParams, resolvedSearchParams] = await Promise.all([
+    params,
+    searchParams ?? Promise.resolve({})
+  ]);
   const { id } = resolvedParams;
   const sequenceId = parseInt(id, 10);
 

@@ -20,7 +20,7 @@ export function useAudioUpload() {
   // Keep track of successful uploads even if webhook fails
   const [lastSuccessfulUpload, setLastSuccessfulUpload] = useState<{ url: string } | null>(null);
 
-  const { startUpload, isUploading, uploadProgress } = useUploadThing("audioUploader", {
+  const { startUpload, isUploading } = useUploadThing("audioUploader", {
     onClientUploadComplete: (res) => {
       if (res && res[0]) {
         // Store the successful upload
@@ -48,16 +48,17 @@ export function useAudioUpload() {
     },
   });
 
-  // Update upload status based on uploadProgress
+  // Update upload status based on isUploading
   useEffect(() => {
-    if (isUploading && typeof uploadProgress === 'number') {
+    if (isUploading) {
       setUploadStatus(prev => ({
         ...prev,
         isUploading: true,
-        progress: uploadProgress,
+        // Since we don't have progress info, we'll use an indeterminate state
+        progress: prev.progress === 0 ? 10 : Math.min(prev.progress + 10, 90),
       }));
     }
-  }, [isUploading, uploadProgress]);
+  }, [isUploading]);
 
   const uploadAudio = async (file: File, metadata: UploadMetadata): Promise<string> => {
     try {
@@ -156,7 +157,7 @@ export function useAudioUpload() {
     uploadAudio,
     uploadStatus: {
       isUploading,
-      progress: uploadProgress || 0,
+      progress: uploadStatus.progress,
       error: uploadStatus.error,
     },
   };
