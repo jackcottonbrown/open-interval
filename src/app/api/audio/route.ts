@@ -204,7 +204,7 @@ export async function POST(request: NextRequest) {
       console.log(`[${requestId}] Audio uploaded:`, {
         id: interval.id,
         filename,
-        url: uploadResponse[0].data.url,
+        url: uploadResponse?.[0]?.data?.url ?? 'No URL returned',
         response: uploadResponse
       });
     } catch (error) {
@@ -367,7 +367,7 @@ export async function PUT(request: NextRequest) {
         results.push({
           id: interval.id,
           success: true,
-          url: uploadResponse[0].data.url,
+          url: uploadResponse?.[0]?.data?.url ?? '',
           generationTime
         });
         generatedCount++;

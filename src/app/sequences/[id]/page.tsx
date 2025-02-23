@@ -11,8 +11,13 @@ interface PageProps {
   searchParams?: Promise<{ [key: string]: string | string[] | undefined }>;
 }
 
-export default async function SequencePage({ params }: PageProps) {
-  const { id } = await params;
+export default async function SequencePage({ 
+  params,
+  searchParams 
+}: PageProps) {
+  // Await the params and searchParams promises
+  const resolvedParams = await params;
+  const { id } = resolvedParams;
   const sequenceId = parseInt(id, 10);
 
   if (isNaN(sequenceId)) {
@@ -31,44 +36,43 @@ export default async function SequencePage({ params }: PageProps) {
   }
 
   return (
-    <div className="container mx-auto px-4 py-8">
-      <div className="mb-8">
-        <h1 className="text-3xl font-bold text-white mb-4">{sequence.name}</h1>
-        <p className="text-gray-300 mb-6">{sequence.description}</p>
-        
-        <div className="flex flex-wrap gap-4 text-sm text-gray-400">
-          <div className="flex items-center gap-2">
-            <User className="w-4 h-4" />
-            <span>
-              {sequence.user.firstName} {sequence.user.lastName}
-            </span>
-          </div>
-          
-          <div className="flex items-center gap-2">
-            <Clock className="w-4 h-4" />
-            <span>
-              Updated {formatDistanceToNow(new Date(sequence.updatedAt), { addSuffix: true })}
-            </span>
-          </div>
-
-          {sequence.tags && sequence.tags.length > 0 && (
-            <div className="flex items-center gap-2">
-              <Tag className="w-4 h-4" />
-              <div className="flex flex-wrap gap-1">
-                {sequence.tags.map(tag => (
-                  <span key={tag} className="bg-gray-700 px-2 py-0.5 rounded-full text-xs">
-                    {tag}
-                  </span>
-                ))}
-              </div>
+    <div className="container mx-auto py-8 space-y-8">
+      {/* Sequence Info */}
+      <div className="bg-gray-800 rounded-lg shadow-lg overflow-hidden">
+        <div className="p-6">
+          <h1 className="text-2xl font-bold text-white mb-4">{sequence.name}</h1>
+          <div className="space-y-2">
+            <div className="flex items-center text-gray-400">
+              <User className="w-4 h-4 mr-2" />
+              <span>Created by {sequence.user.firstName} {sequence.user.lastName}</span>
             </div>
-          )}
+            <div className="flex items-center text-gray-400">
+              <Clock className="w-4 h-4 mr-2" />
+              <span>Created {formatDistanceToNow(new Date(sequence.createdAt))} ago</span>
+            </div>
+            {sequence.tags && sequence.tags.length > 0 && (
+              <div className="flex items-center text-gray-400">
+                <Tag className="w-4 h-4 mr-2" />
+                <div className="flex gap-2">
+                  {sequence.tags.map(tag => (
+                    <span
+                      key={tag}
+                      className="px-2 py-1 bg-gray-700 rounded-full text-xs"
+                    >
+                      {tag}
+                    </span>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
         </div>
       </div>
 
-      <div className="bg-gray-800 rounded-lg shadow-lg overflow-hidden">
-        <PublicSequencePlayer channels={sequence.channels} />
-      </div>
+      {/* Player */}
+      <PublicSequencePlayer 
+        channels={sequence.channels}
+      />
     </div>
   );
 } 
